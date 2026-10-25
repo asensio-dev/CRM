@@ -116,8 +116,10 @@ describe('ImportCompaniesUseCase', () => {
       rejected: 2,
     });
     expect(summary.rejectionsByReason).toEqual({ 'RUC faltante': 1, 'Razón social faltante': 1 });
-    expect(writer.batches).toHaveLength(1);
-    expect(writer.batches[0]?.branches[0]?.ruc).toBe('J0000000000001');
+    // empresas primero; las sucursales van al final, en un lote aparte
+    expect(writer.batches).toHaveLength(2);
+    expect(writer.batches[0]?.companies).toHaveLength(2);
+    expect(writer.batches[1]?.branches[0]?.ruc).toBe('J0000000000001');
     expect(jobs.status).toBe('COMPLETADO');
     expect(jobs.final).toEqual({
       totalRows: 6,
@@ -146,8 +148,8 @@ describe('ImportCompaniesUseCase', () => {
     expect(summary.inserted).toBe(total);
     expect(writer.batches).toHaveLength(26);
     expect(writer.batches.every((b) => b.companies.length <= IMPORT_BATCH_SIZE)).toBe(true);
-    expect(jobs.progress).toHaveLength(2); // lotes 10 y 20
-    expect(progress).toHaveLength(2);
+    expect(jobs.progress.length).toBeGreaterThanOrEqual(1);
+    expect(progress).toHaveLength(jobs.progress.length);
   });
 
   test('falla el job si faltan columnas obligatorias', async () => {

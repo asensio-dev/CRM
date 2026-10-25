@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import type { ImportRow } from '../../domain/import-row';
 import { normalizeRow } from '../../domain/normalize-row';
 import { ExcelJsRowSource } from './exceljs-row-source';
@@ -72,7 +73,33 @@ beforeAll(async () => {
     'PRIVADA NACIONAL',
   ]);
   await workbook.xlsx.writeFile(file);
+  await reorderLikeExcel(file);
 });
+
+/**
+ * ExcelJS escribe `xl/workbook.xml` al final del zip; Excel lo escribe antes que las hojas y el
+ * lector en streaming lo necesita así. Se reempaqueta con el orden de Excel para que el
+ * fixture sea determinista y se parezca al archivo real.
+ */
+async function reorderLikeExcel(path: string): Promise<void> {
+  const source = await JSZip.loadAsync(await Bun.file(path).arrayBuffer());
+  const first = [
+    '[Content_Types].xml',
+    '_rels/.rels',
+    'xl/workbook.xml',
+    'xl/_rels/workbook.xml.rels',
+    'xl/sharedStrings.xml',
+    'xl/styles.xml',
+  ];
+  const names = Object.keys(source.files).filter((n) => !source.files[n]?.dir);
+  const ordered = [...first, ...names.filter((n) => !first.includes(n))].filter((n) =>
+    names.includes(n),
+  );
+  const target = new JSZip();
+  for (const name of ordered)
+    target.file(name, await (source.file(name) as JSZip.JSZipObject).async('uint8array'));
+  await Bun.write(path, await target.generateAsync({ type: 'uint8array', compression: 'DEFLATE' }));
+}
 
 afterAll(async () => {
   await rm(dir, { recursive: true, force: true });

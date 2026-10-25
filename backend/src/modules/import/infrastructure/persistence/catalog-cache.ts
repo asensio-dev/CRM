@@ -23,8 +23,20 @@ export class CatalogCache {
     return name === null ? null : (this.ids.get(keyOf(name)) ?? null);
   }
 
-  /** Garantiza que todos los nombres existan en el catálogo. Devuelve cuántos se crearon. */
-  async ensure(names: Iterable<string | null>): Promise<number> {
+  private lock: Promise<unknown> = Promise.resolve();
+
+  /**
+   * Garantiza que todos los nombres existan en el catálogo. Devuelve cuántos se crearon.
+   * Las llamadas se serializan (los lotes se escriben en paralelo).
+   */
+  ensure(names: Iterable<string | null>): Promise<number> {
+    const list = [...names];
+    const run = this.lock.then(() => this.doEnsure(list));
+    this.lock = run.catch(() => undefined);
+    return run;
+  }
+
+  private async doEnsure(names: Iterable<string | null>): Promise<number> {
     if (!this.loaded) {
       for (const row of await this.store.loadAll()) this.ids.set(keyOf(row.name), row.id);
       this.loaded = true;

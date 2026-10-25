@@ -10,6 +10,7 @@ import {
   COMPANY_IMPORT_WRITER,
   type CompanyImportWriter,
   IMPORT_JOB_REPOSITORY,
+  type ImportBatch,
   type ImportCounters,
   type ImportJobRepository,
   type NewRejection,
@@ -19,6 +20,8 @@ import {
 
 /** Filas por lote. 100 empresas × ~14 columnas ≈ 1 400 parámetros < 2 100 (límite de SQL Server). */
 export const IMPORT_BATCH_SIZE = 100;
+/** Lotes escribiéndose a la vez (consultas de ~100 filas: la latencia por lote domina). */
+export const WRITE_CONCURRENCY = 4;
 /** El progreso del job se persiste cada N lotes. */
 export const PROGRESS_EVERY_BATCHES = 10;
 
@@ -84,33 +87,52 @@ export class ImportCompaniesUseCase implements UseCase<ImportCompaniesInput, Imp
     });
 
     let companies: CompanyCandidate[] = [];
-    let branches: BranchCandidate[] = [];
+    // Las sucursales se escriben al final: así todas las empresas ya existen y los lotes de
+    // empresas pueden ir en paralelo sin depender del orden de las filas.
+    const deferredBranches: BranchCandidate[] = [];
     let rejections: NewRejection[] = [];
-    let batches = 0;
+    let completed = 0;
+    let reported = 0;
     let headerChecked = false;
 
-    const flush = async () => {
-      if (companies.length > 0 || branches.length > 0) {
-        const r = await this.writer.writeBatch({ companies, branches });
-        s.inserted += r.inserted;
-        s.updated += r.updated;
-        s.unchanged += r.unchanged;
-        s.skippedManual += r.skippedManual;
-        s.branchesInserted += r.branchesInserted;
-        s.branchesExisting += r.branchesExisting;
-        s.newActivities += r.newActivities;
-        companies = [];
-        branches = [];
-        batches++;
-      }
-      if (rejections.length > 0) {
-        await this.jobs.addRejections(jobId, rejections);
-        rejections = [];
-      }
-      if (batches > 0 && batches % PROGRESS_EVERY_BATCHES === 0) {
-        await this.jobs.updateProgress(jobId, counters());
-        input.onProgress?.({ ...s, durationMs: Date.now() - startedAt });
-      }
+    const inFlight = new Set<Promise<void>>();
+    let failure: unknown;
+    const dispatch = async (batch: ImportBatch) => {
+      const task: Promise<void> = this.writer
+        .writeBatch(batch)
+        .then((r) => {
+          s.inserted += r.inserted;
+          s.updated += r.updated;
+          s.unchanged += r.unchanged;
+          s.skippedManual += r.skippedManual;
+          s.branchesInserted += r.branchesInserted;
+          s.branchesExisting += r.branchesExisting;
+          s.newActivities += r.newActivities;
+          completed++;
+        })
+        .catch((error) => {
+          failure ??= error;
+        })
+        .finally(() => inFlight.delete(task));
+      inFlight.add(task);
+      if (inFlight.size >= WRITE_CONCURRENCY) await Promise.race(inFlight);
+      if (failure) throw failure;
+    };
+    const drain = async () => {
+      await Promise.all(inFlight);
+      if (failure) throw failure;
+    };
+    const flushRejections = async () => {
+      if (rejections.length === 0) return;
+      const pending = rejections;
+      rejections = [];
+      await this.jobs.addRejections(jobId, pending);
+    };
+    const reportProgress = async () => {
+      if (completed - reported < PROGRESS_EVERY_BATCHES) return;
+      reported = completed;
+      await this.jobs.updateProgress(jobId, counters());
+      input.onProgress?.({ ...s, durationMs: Date.now() - startedAt });
     };
 
     try {
@@ -130,18 +152,29 @@ export class ImportCompaniesUseCase implements UseCase<ImportCompaniesInput, Imp
         s.totalRows++;
         this.classify(row, dedup, s, {
           company: (c) => companies.push(c),
-          branch: (b) => branches.push(b),
+          branch: (b) => deferredBranches.push(b),
           rejection: (r) => rejections.push(r),
         });
-        if (
-          companies.length >= IMPORT_BATCH_SIZE ||
-          branches.length >= IMPORT_BATCH_SIZE ||
-          rejections.length >= IMPORT_BATCH_SIZE
-        ) {
-          await flush();
+        if (companies.length >= IMPORT_BATCH_SIZE) {
+          const batch = companies;
+          companies = [];
+          await dispatch({ companies: batch, branches: [] });
+          await reportProgress();
         }
+        if (rejections.length >= IMPORT_BATCH_SIZE) await flushRejections();
       }
-      await flush();
+      if (companies.length > 0) await dispatch({ companies, branches: [] });
+      await flushRejections();
+      await drain();
+
+      for (let i = 0; i < deferredBranches.length; i += IMPORT_BATCH_SIZE) {
+        await dispatch({
+          companies: [],
+          branches: deferredBranches.slice(i, i + IMPORT_BATCH_SIZE),
+        });
+        await reportProgress();
+      }
+      await drain();
 
       s.durationMs = Date.now() - startedAt;
       await this.jobs.complete(jobId, counters());
