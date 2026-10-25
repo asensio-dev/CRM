@@ -10,10 +10,13 @@ import {
 import { Compass } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { z } from 'zod';
+import { AppointmentsPage } from '@/features/appointments';
 import { redirectIfAuthenticated, requireAuth, requireRole } from '@/features/auth/guards';
 import { LoginPage } from '@/features/auth/login-page';
 import { CompaniesPage } from '@/features/companies';
 import { CompanyDetailPage } from '@/features/company-detail/company-detail-page';
+import { ContractsPage } from '@/features/contracts';
+import { DashboardPage } from '@/features/dashboard';
 import { ImportPage } from '@/features/import';
 import { MyWeekPage } from '@/features/my-week';
 import { PipelinePage } from '@/features/pipeline';
@@ -87,6 +90,9 @@ const PAGE_COMPONENTS: Partial<Record<NavItem['to'], ComponentType>> = {
   '/mi-semana': MyWeekPage,
   '/cartera': PortfolioPage,
   '/pipeline': PipelinePage,
+  '/tablero': DashboardPage,
+  '/citas': AppointmentsPage,
+  '/contratos': ContractsPage,
   '/empresas': CompaniesPage,
   '/importacion': ImportPage,
   '/usuarios': UsersPage,
