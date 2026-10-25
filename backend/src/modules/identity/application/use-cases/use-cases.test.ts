@@ -10,6 +10,7 @@ import {
   PassThroughUow,
   seedUser,
 } from '../../test-support';
+import { ActiveSessionChecker } from '../active-session-checker';
 import { SessionIssuer } from '../session-issuer';
 import { CreateUserUseCase } from './create-user.use-case';
 import { GetMeUseCase } from './get-me.use-case';
@@ -28,20 +29,91 @@ let refresh: RefreshSessionUseCase;
 let logout: LogoutUseCase;
 let update: UpdateUserUseCase;
 let reset: ResetUserPasswordUseCase;
+let checker: ActiveSessionChecker;
+let issuer: ReturnType<typeof makeIssuer>;
 const password = `pw-${crypto.randomUUID()}`;
 
 beforeEach(() => {
   clock = new FakeClock();
   users = new InMemoryUserRepository();
   tokensRepo = new InMemoryRefreshTokenRepository();
-  const issuer = makeIssuer(clock);
+  issuer = makeIssuer(clock);
   const hasher = new FakeHasher();
   const sessions = new SessionIssuer(issuer, tokensRepo);
   login = new LoginUseCase(users, hasher, sessions);
   refresh = new RefreshSessionUseCase(issuer, tokensRepo, users, clock, sessions);
   logout = new LogoutUseCase(issuer, tokensRepo, clock);
-  update = new UpdateUserUseCase(users, tokensRepo, new PassThroughUow(), clock);
-  reset = new ResetUserPasswordUseCase(users, tokensRepo, hasher, new PassThroughUow(), clock);
+  checker = new ActiveSessionChecker(users, clock);
+  update = new UpdateUserUseCase(users, tokensRepo, new PassThroughUow(), clock, checker);
+  reset = new ResetUserPasswordUseCase(
+    users,
+    tokensRepo,
+    hasher,
+    new PassThroughUow(),
+    clock,
+    checker,
+  );
+});
+
+/** Claims de un access token recién emitido y verificado (incluye `iat`). */
+async function accessClaims(userId: number, role: 'ADMIN' | 'EJECUTIVO' = 'EJECUTIVO') {
+  const token = await issuer.issueAccess({ userId, email: 'x@axiom.test', role });
+  return (await issuer.verifyAccess(token)) as NonNullable<
+    Awaited<ReturnType<typeof issuer.verifyAccess>>
+  >;
+}
+
+describe('ActiveSessionChecker (access tokens tras desactivar / cambiar rol / reset)', () => {
+  test('válido para usuario activo con el mismo rol; 1 consulta por usuario cada 30 s', async () => {
+    const u = await seedUser(users, { email: 'ana@axiom.test', role: 'EJECUTIVO' });
+    let reads = 0;
+    const original = users.findById.bind(users);
+    users.findById = async (id: number) => {
+      reads++;
+      return original(id);
+    };
+    const claims = await accessClaims(u.id as number);
+    expect(await checker.isValid(claims)).toBe(true);
+    expect(await checker.isValid(claims)).toBe(true);
+    expect(reads).toBe(1);
+    clock.advanceSeconds(31);
+    expect(await checker.isValid(claims)).toBe(true);
+    expect(reads).toBe(2);
+  });
+
+  test('desactivar o cambiar el rol invalida al instante el access token vigente', async () => {
+    await seedUser(users, { email: 'root@axiom.test', role: 'ADMIN' });
+    const ej = await seedUser(users, { email: 'ej@axiom.test', role: 'EJECUTIVO' });
+    const claims = await accessClaims(ej.id as number);
+    expect(await checker.isValid(claims)).toBe(true); // queda en caché
+
+    await update.execute({ actorId: 1, userId: ej.id as number, changes: { role: 'SUPERVISOR' } });
+    expect(await checker.isValid(claims)).toBe(false);
+
+    clock.advanceSeconds(2);
+    const fresh = await accessClaims(ej.id as number, 'EJECUTIVO');
+    expect(await checker.isValid(fresh)).toBe(false); // rol del token ≠ rol actual
+
+    await update.execute({ actorId: 1, userId: ej.id as number, changes: { isActive: false } });
+    clock.advanceSeconds(2);
+    expect(await checker.isValid(await accessClaims(ej.id as number))).toBe(false);
+  });
+
+  test('sin caché caliente también detecta usuarios inexistentes o inactivos', async () => {
+    const off = await seedUser(users, { email: 'off@axiom.test', isActive: false });
+    expect(await checker.isValid(await accessClaims(off.id as number))).toBe(false);
+    expect(await checker.isValid(await accessClaims(999))).toBe(false);
+  });
+
+  test('reset de contraseña invalida los access tokens emitidos antes; los nuevos valen', async () => {
+    const u = await seedUser(users, { email: 'ej@axiom.test', password });
+    const before = await accessClaims(u.id as number);
+    clock.advanceSeconds(1);
+    await reset.execute({ userId: u.id as number, newPassword: `new-${crypto.randomUUID()}` });
+    expect(await checker.isValid(before)).toBe(false);
+    clock.advanceSeconds(1);
+    expect(await checker.isValid(await accessClaims(u.id as number))).toBe(true);
+  });
 });
 
 describe('Login', () => {

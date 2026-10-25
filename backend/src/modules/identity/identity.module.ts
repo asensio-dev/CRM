@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ActiveSessionChecker } from './application/active-session-checker';
 import { SessionIssuer } from './application/session-issuer';
 import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
 import { GetMeUseCase } from './application/use-cases/get-me.use-case';
@@ -32,6 +33,7 @@ import { JoseTokenIssuer } from './infrastructure/security/jose-token-issuer';
     { provide: TOKEN_ISSUER, useClass: JoseTokenIssuer },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     SessionIssuer,
+    ActiveSessionChecker,
     LoginUseCase,
     RefreshSessionUseCase,
     LogoutUseCase,

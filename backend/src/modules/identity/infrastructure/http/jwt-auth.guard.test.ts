@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { type ExecutionContext, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY, ROLES_KEY } from '../../../../shared/infrastructure/http/auth.decorators';
+import type { ActiveSessionChecker } from '../../application/active-session-checker';
 import { FakeClock, makeIssuer } from '../../test-support';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -20,12 +21,27 @@ function ctx(meta: Record<string, unknown>, headers: Record<string, string> = {}
 
 const clock = new FakeClock();
 const issuer = makeIssuer(clock);
-const guard = new JwtAuthGuard(new Reflector(), issuer);
+/** Sesiones revocadas (usuario desactivado / rol cambiado), según el ActiveSessionChecker. */
+const revoked = new Set<number>();
+const sessions = {
+  isValid: async (claims: { userId: number }) => !revoked.has(claims.userId),
+} as unknown as ActiveSessionChecker;
+const guard = new JwtAuthGuard(new Reflector(), issuer, sessions);
 const bearer = async (role: 'ADMIN' | 'EJECUTIVO') => ({
   authorization: `Bearer ${await issuer.issueAccess({ userId: 7, email: 'a@b.com', role })}`,
 });
 
 describe('JwtAuthGuard', () => {
+  test('401 con token válido de un usuario desactivado o con sesiones revocadas', async () => {
+    const headers = await bearer('EJECUTIVO');
+    revoked.add(7);
+    await expect(guard.canActivate(ctx({}, headers).context)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    revoked.delete(7);
+    expect(await guard.canActivate(ctx({}, headers).context)).toBe(true);
+  });
+
   test('permite rutas públicas sin token', async () => {
     const { context } = ctx({ [IS_PUBLIC_KEY]: true });
     expect(await guard.canActivate(context)).toBe(true);

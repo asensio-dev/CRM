@@ -14,6 +14,7 @@ import {
   USER_REPOSITORY,
   type UserRepository,
 } from '../../domain';
+import { ActiveSessionChecker } from '../active-session-checker';
 import { toUserDto } from '../mappers';
 
 @Injectable()
@@ -25,10 +26,11 @@ export class UpdateUserUseCase
     @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokens: RefreshTokenRepository,
     @Inject(UNIT_OF_WORK) private readonly uow: UnitOfWork,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly sessions: ActiveSessionChecker,
   ) {}
 
-  execute(input: { actorId: number; userId: number; changes: UpdateUser }): Promise<UserDto> {
-    return this.uow.run(async () => {
+  async execute(input: { actorId: number; userId: number; changes: UpdateUser }): Promise<UserDto> {
+    const { dto, revoked } = await this.uow.run(async () => {
       const user = await this.users.findById(input.userId);
       if (!user) throw DomainError.notFound('USER_NOT_FOUND', 'Usuario no encontrado');
 
@@ -39,11 +41,13 @@ export class UpdateUserUseCase
       });
       const saved = await this.users.save(user);
 
-      // Cambiar rol o desactivar corta las sesiones existentes (el access token caduca solo).
-      if (saved.role !== before.role || (before.isActive && !saved.isActive)) {
-        await this.refreshTokens.revokeAllForUser(input.userId, this.clock.now());
-      }
-      return toUserDto(saved);
+      // Cambiar rol o desactivar corta las sesiones: refresh tokens aquí y access tokens en el
+      // guard (ActiveSessionChecker) en cuanto confirma la transacción.
+      const mustRevoke = saved.role !== before.role || (before.isActive && !saved.isActive);
+      if (mustRevoke) await this.refreshTokens.revokeAllForUser(input.userId, this.clock.now());
+      return { dto: toUserDto(saved), revoked: mustRevoke };
     });
+    if (revoked) this.sessions.revokeSessions(input.userId);
+    return dto;
   }
 }

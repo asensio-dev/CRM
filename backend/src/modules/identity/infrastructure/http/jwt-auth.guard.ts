@@ -12,6 +12,7 @@ import {
   IS_PUBLIC_KEY,
   ROLES_KEY,
 } from '../../../../shared/infrastructure/http/auth.decorators';
+import { ActiveSessionChecker } from '../../application/active-session-checker';
 import { TOKEN_ISSUER, type TokenIssuer } from '../../domain';
 
 interface AuthRequest {
@@ -25,6 +26,7 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     @Inject(TOKEN_ISSUER) private readonly tokens: TokenIssuer,
+    private readonly sessions: ActiveSessionChecker,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -40,6 +42,10 @@ export class JwtAuthGuard implements CanActivate {
 
     const claims = await this.tokens.verifyAccess(token);
     if (!claims) throw new UnauthorizedException('Token de acceso inválido o expirado');
+    // Usuario desactivado, con otro rol o con sesiones revocadas → el token deja de valer ya.
+    if (!(await this.sessions.isValid(claims))) {
+      throw new UnauthorizedException('Sesión revocada; vuelve a iniciar sesión');
+    }
 
     request.user = { id: claims.userId, email: claims.email, role: claims.role };
 
