@@ -2,5 +2,6 @@
 export * from './common';
 export * from './companies';
 export * from './identity';
+export * from './import';
 export * from './pipeline';
 export * from './portfolio';
