@@ -49,22 +49,17 @@ await this.events.publishAll(company.pullEvents());    // tras confirmar la tran
 ## 3. Flujo de Git
 
 ```bash
-# 1. Rama + worktree propios (desde la raíz del repo)
-git worktree add ../axiom-wt/<slug> -b feat/<ola>-<slug> main
-cd ../axiom-wt/<slug> && bun install
+# 1. Worktree propio (lo crea el orquestador) y rama con nombre del plan
+git switch -c feat/<ola>-<slug>
+bun install
 
 # 2. Commits pequeños, Conventional Commits (lo valida el hook commit-msg)
 git commit -m "feat(companies): add paginated search use case"
 
-# 3. Antes de integrar
-git fetch origin 2>/dev/null; git rebase main
-bun install && bun run verify
-
-# 4. Integrar (una rama a la vez; si main avanzó mientras tanto, vuelve al paso 3)
-git switch main && git merge --no-ff feat/<ola>-<slug>
-
-# 5. Limpiar
-git worktree remove ../axiom-wt/<slug> && git branch -d feat/<ola>-<slug>
+# 3. Integrar en main: candado global → rebase sobre main → bun install → verify → merge --no-ff
+bun scripts/integrate.ts
+#    Con conflictos en el rebase: resuélvelos (bun.lock: el de main + `bun install`),
+#    git add, git rebase --continue y vuelve a ejecutar el script.
 ```
 
 Archivos compartidos: en `backend/src/app.module.ts` y en el router/menú del frontend cada agente añade **solo sus líneas**. `bun.lock` nunca se resuelve a mano: tras el rebase, `bun install`.
