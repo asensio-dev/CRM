@@ -8,14 +8,18 @@ import type {
 } from '@axiom/contracts';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
+import { cloneElement, type ReactElement } from 'react';
 import { jsonResponse, mockFetch, mountApp } from '@/test/helpers';
 
 // Recharts mide el DOM con ResizeObserver: en happy-dom no hay tamaño, así que solo en tests
 // se sustituye el contenedor responsivo por uno de tamaño fijo.
 const actual = await import('recharts');
-function FixedSizeContainer({ children }: { children: ReactNode }) {
-  return <div style={{ width: 600, height: 300 }}>{children}</div>;
+function FixedSizeContainer({ children }: { children: ReactElement }) {
+  return (
+    <div style={{ width: 600, height: 300 }}>
+      {cloneElement(children, { width: 600, height: 300 } as never)}
+    </div>
+  );
 }
 mock.module('recharts', () => ({ ...actual, ResponsiveContainer: FixedSizeContainer }));
 
@@ -358,6 +362,25 @@ describe('DashboardPage', () => {
       ).toBe(true),
     );
     expect(router.state.location.search).toMatchObject({ userId: 2 });
+  });
+
+  test('dibuja los gráficos y el desglose por ejecutivo pide byExecutive', async () => {
+    mocked = mockFetch(handler());
+    await mountApp('/tablero', 'ADMIN');
+    await screen.findByTestId('kpi-compliance');
+    await waitFor(() =>
+      expect(document.querySelectorAll('svg.recharts-surface').length).toBeGreaterThanOrEqual(2),
+    );
+    await userEvent.setup().click(await screen.findByLabelText('Ver actividad por ejecutivo'));
+    await waitFor(() =>
+      expect(
+        mocked.calls.some(
+          (c) =>
+            c.url.pathname === '/api/analytics/weekly-activity' &&
+            c.url.searchParams.get('byExecutive') === 'true',
+        ),
+      ).toBe(true),
+    );
   });
 
   test('el ejecutivo no ve el filtro de ejecutivo', async () => {
