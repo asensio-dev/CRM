@@ -15,7 +15,9 @@ import { LoginPage } from '@/features/auth/login-page';
 import { CompaniesPage } from '@/features/companies';
 import { CompanyDetailPage } from '@/features/company-detail/company-detail-page';
 import { ImportPage } from '@/features/import';
+import { MyWeekPage } from '@/features/my-week';
 import { PipelinePage } from '@/features/pipeline';
+import { PortfolioPage } from '@/features/portfolio';
 import { UsersPage } from '@/features/users';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -82,6 +84,8 @@ const PAGES: Record<NavItem['to'], { description: string; wave: 2 | 3 }> = {
  * las que faltan muestran el placeholder de su ola.
  */
 const PAGE_COMPONENTS: Partial<Record<NavItem['to'], ComponentType>> = {
+  '/mi-semana': MyWeekPage,
+  '/cartera': PortfolioPage,
   '/pipeline': PipelinePage,
   '/empresas': CompaniesPage,
   '/importacion': ImportPage,
