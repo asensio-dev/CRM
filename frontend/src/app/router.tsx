@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { redirectIfAuthenticated, requireAuth, requireRole } from '@/features/auth/guards';
 import { LoginPage } from '@/features/auth/login-page';
 import { CompanyDetailPage } from '@/features/company-detail/company-detail-page';
+import { PipelinePage } from '@/features/pipeline';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { PlaceholderPage } from '@/shared/ui/placeholder-page';
@@ -79,6 +80,7 @@ const PAGES: Record<NavItem['to'], { description: string; wave: 2 | 3 }> = {
  */
 const PAGE_COMPONENTS: Partial<Record<NavItem['to'], ComponentType>> = {
   // '/empresas': CompaniesPage,
+  '/pipeline': PipelinePage,
 };
 
 const pageRoutes = NAV_ITEMS.map((item) => {
