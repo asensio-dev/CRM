@@ -1,4 +1,9 @@
 // API pública del módulo pipeline (lo único que otros módulos pueden importar).
+export type { CompanyAccessPolicy } from './application/ports/company-access-policy';
+export {
+  AllowAllCompanyAccessPolicy,
+  COMPANY_ACCESS_POLICY,
+} from './application/ports/company-access-policy';
 export type { ChangeCompanyStatusInput } from './application/use-cases/change-company-status.use-case';
 export { ChangeCompanyStatusUseCase } from './application/use-cases/change-company-status.use-case';
 export type { RegisterInteractionUseCaseInput } from './application/use-cases/register-interaction.use-case';
