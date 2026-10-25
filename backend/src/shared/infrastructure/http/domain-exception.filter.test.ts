@@ -67,6 +67,25 @@ describe('DomainExceptionFilter', () => {
     expect(run(prismaError('P2025')).status).toBe(404);
   });
 
+  test('errores 4xx de body-parser (JSON roto, cuerpo grande) no son 500', () => {
+    const tooLarge = Object.assign(new Error('request entity too large'), {
+      status: 413,
+      expose: true,
+      type: 'entity.too.large',
+    });
+    const big = run(tooLarge);
+    expect(big.status).toBe(413);
+    expect(big.body.code).toBe('PAYLOAD_TOO_LARGE');
+    expect(big.logged).toHaveLength(0);
+    const broken = Object.assign(new SyntaxError('Unexpected token } in JSON'), {
+      status: 400,
+      expose: true,
+    });
+    expect(run(broken).status).toBe(400);
+    // Un error con status pero no "expose" sigue siendo 500 genérico
+    expect(run(Object.assign(new Error('x'), { status: 400 })).status).toBe(500);
+  });
+
   test('safeErrorLog de errores normales conserva la pila', () => {
     expect(safeErrorLog(new Error('boom'))).toContain('boom');
     expect(safeErrorLog('texto')).toBe('Excepción no Error: string');

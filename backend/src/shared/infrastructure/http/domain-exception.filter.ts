@@ -43,6 +43,17 @@ export function safeErrorLog(exception: unknown): string {
   return `Excepción no Error: ${typeof exception}`;
 }
 
+function httpClientError(exception: unknown): ApiError | null {
+  if (!(exception instanceof Error)) return null;
+  const { status, expose } = exception as { status?: unknown; expose?: unknown };
+  if (typeof status !== 'number' || status < 400 || status > 499 || expose !== true) return null;
+  return {
+    statusCode: status,
+    code: HttpStatus[status] ?? 'BAD_REQUEST',
+    message: status === 413 ? 'El cuerpo de la petición es demasiado grande' : 'Petición inválida',
+  };
+}
+
 /** Traduce cualquier error a la forma única `ApiError`. Los errores inesperados no filtran detalles. */
 @Catch()
 export class DomainExceptionFilter implements ExceptionFilter {
@@ -72,6 +83,10 @@ export class DomainExceptionFilter implements ExceptionFilter {
         details: typeof response === 'object' ? response : undefined,
       };
     }
+    // Errores 4xx de middlewares Express (body-parser: JSON mal formado, cuerpo > 100 KB…): siguen
+    // la convención http-errors (`status` + `expose`). Antes acababan como 500.
+    const clientError = httpClientError(exception);
+    if (clientError) return clientError;
     const prisma = prismaErrorInfo(exception);
     // Carreras contra índices únicos / filas borradas entre lectura y escritura: no son un 500.
     if (prisma?.code === 'P2002') {
