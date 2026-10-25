@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { safeErrorLog } from '../../../../shared/infrastructure/http/domain-exception.filter';
 import { CompanyStatusChanged, InteractionRegistered } from '../../../pipeline';
 import {
   MarkPlanItemContactedUseCase,
@@ -28,7 +29,10 @@ export class PipelineEventsSubscriber {
         occurredAt: event.occurredAt,
       });
     } catch (error) {
-      this.logger.error(`No se pudo marcar el plan de la empresa ${event.companyId}`, error);
+      this.logger.error(
+        `No se pudo marcar el plan de la empresa ${event.companyId}`,
+        safeErrorLog(error),
+      );
     }
   }
 
@@ -41,7 +45,10 @@ export class PipelineEventsSubscriber {
         occurredAt: event.occurredAt,
       });
     } catch (error) {
-      this.logger.error(`No se pudo liberar la asignación de la empresa ${event.companyId}`, error);
+      this.logger.error(
+        `No se pudo liberar la asignación de la empresa ${event.companyId}`,
+        safeErrorLog(error),
+      );
     }
   }
 }
