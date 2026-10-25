@@ -36,6 +36,7 @@ import {
 import { JoseTokenIssuer } from '../security/jose-token-issuer';
 import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { LOGIN_THROTTLERS } from './login-throttling';
 import { UsersController } from './users.controller';
 
 let app: INestApplication;
@@ -64,7 +65,7 @@ beforeAll(async () => {
   await seedUser(users, { email: 'ej@axiom.test', password: execPw, role: 'EJECUTIVO' });
 
   const moduleRef = await Test.createTestingModule({
-    imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 5 }])],
+    imports: [ThrottlerModule.forRoot(LOGIN_THROTTLERS)],
     controllers: [AuthController, UsersController],
     providers: [
       { provide: APP_CONFIG, useValue: testConfig() },

@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -9,8 +10,11 @@ import { APP_CONFIG, type AppConfig } from './shared/infrastructure/config/env';
 import { DomainExceptionFilter } from './shared/infrastructure/http/domain-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get<AppConfig>(APP_CONFIG);
+
+  // Detrás de un proxy inverso, IP real del cliente para el rate limit (TRUST_PROXY en .env.example).
+  if (config.TRUST_PROXY !== undefined) app.set('trust proxy', config.TRUST_PROXY);
 
   app.use(helmet());
   app.use(cookieParser());
