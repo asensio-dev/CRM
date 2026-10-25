@@ -21,6 +21,33 @@ export function normalizePhone(raw: unknown): string | null {
   return value.replace('+', '').length >= 7 && value.length <= 20 ? value : null;
 }
 
+const SEARCH_ACCENTS: Record<string, string> = {
+  Á: 'A',
+  É: 'E',
+  Í: 'I',
+  Ó: 'O',
+  Ú: 'U',
+  Ü: 'U',
+  Ñ: 'N',
+  À: 'A',
+  È: 'E',
+  Ì: 'I',
+  Ò: 'O',
+  Ù: 'U',
+};
+
+/**
+ * Normaliza un texto de búsqueda igual que la columna calculada `companies.searchText`
+ * (UPPER + TRANSLATE de tildes y Ñ, ver migración search_and_board_indexes). Si cambias una, cambia la otra.
+ */
+export function normalizeSearchText(raw: string): string {
+  return raw
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toUpperCase()
+    .replace(/[ÁÉÍÓÚÜÑÀÈÌÒÙ]/g, (ch) => SEARCH_ACCENTS[ch] ?? ch);
+}
+
 export const RucSchema = z.string().transform((v, ctx) => {
   const ruc = normalizeRuc(v);
   if (!ruc) ctx.addIssue({ code: 'custom', message: 'RUC inválido' });

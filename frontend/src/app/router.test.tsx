@@ -33,9 +33,9 @@ describe('rutas protegidas', () => {
 
   test('con sesión muestra la página y la navegación', async () => {
     signIn('EJECUTIVO');
-    await mount('/pipeline');
-    expect(await screen.findByRole('heading', { name: 'Pipeline' })).toBeTruthy();
-    expect(screen.getByText('Disponible en la Ola 2')).toBeTruthy();
+    await mount('/cartera');
+    expect(await screen.findByRole('heading', { name: 'Cartera' })).toBeTruthy();
+    expect(screen.getByText('Disponible en la Ola 3')).toBeTruthy();
     expect(screen.queryByText('Usuarios')).toBeNull();
     expect(screen.queryByText('Importación')).toBeNull();
   });

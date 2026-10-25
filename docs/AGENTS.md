@@ -12,7 +12,9 @@ Lee esto completo antes de tocar código. El plan general está en [PLAN_IMPLEME
    - Un módulo solo usa de otro lo que exporta su `index.ts`.
 4. **Esquema y migraciones**: solo el agente designado de la ola puede modificar `backend/prisma/schema.prisma` o crear migraciones. Si necesitas un cambio, descríbelo en tu PR / mensaje final; no lo hagas tú.
 5. **Una migración fusionada a `main` nunca se edita**. Cambio = migración nueva.
-6. Si cambias valores permitidos (estados, roles, canales…) actualiza **a la vez** `packages/contracts` y el `CHECK` en una migración nueva. `schema-consistency.test.ts` lo verifica.
+6. `companies.searchText` es una columna calculada **de solo lectura** (ADR 0004): nunca la escribas. Para buscar texto
+   usa `searchText` + `normalizeSearchText()` de `@axiom/contracts`. Con `sqlcmd` usa siempre `-I`.
+7. Si cambias valores permitidos (estados, roles, canales…) actualiza **a la vez** `packages/contracts` y el `CHECK` en una migración nueva. `schema-consistency.test.ts` lo verifica.
 
 ## 2. Estructura de un módulo
 
@@ -62,7 +64,7 @@ bun scripts/integrate.ts
 #    git add, git rebase --continue y vuelve a ejecutar el script.
 ```
 
-Archivos compartidos: en `backend/src/app.module.ts` y en el router/menú del frontend cada agente añade **solo sus líneas**. `bun.lock` nunca se resuelve a mano: tras el rebase, `bun install`.
+Archivos compartidos: en `backend/src/app.module.ts` y en `frontend/src/app/router.tsx` (mapa `PAGE_COMPONENTS`) cada agente añade **solo sus líneas**. `bun.lock` nunca se resuelve a mano: tras el rebase, `bun install`.
 
 ## 4. Comandos
 

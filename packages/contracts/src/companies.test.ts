@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { normalizePhone, normalizeRuc, RucSchema } from './companies';
+import { normalizePhone, normalizeRuc, normalizeSearchText, RucSchema } from './companies';
 
 describe('company normalization', () => {
   test('normalizes RUC from text or number', () => {
@@ -14,6 +14,12 @@ describe('company normalization', () => {
     expect(normalizePhone('2999-0011')).toBe('29990011');
     expect(normalizePhone('+505 8999 0022')).toBe('+50589990022');
     expect(normalizePhone('0')).toBeNull();
+  });
+
+  test('normalizeSearchText matches the searchText computed column rules', () => {
+    expect(normalizeSearchText('  Ferretería   Año ')).toBe('FERRETERIA ANO');
+    expect(normalizeSearchText('pingüino')).toBe('PINGUINO');
+    expect(normalizeSearchText('j0310')).toBe('J0310');
   });
 
   test('RucSchema rejects empty input', () => {

@@ -8,9 +8,11 @@ import {
   redirect,
 } from '@tanstack/react-router';
 import { Compass } from 'lucide-react';
+import type { ComponentType } from 'react';
 import { z } from 'zod';
 import { redirectIfAuthenticated, requireAuth, requireRole } from '@/features/auth/guards';
 import { LoginPage } from '@/features/auth/login-page';
+import { CompanyDetailPage } from '@/features/company-detail/company-detail-page';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { PlaceholderPage } from '@/shared/ui/placeholder-page';
@@ -60,7 +62,7 @@ const indexRoute = createRoute({
 });
 
 const PAGES: Record<NavItem['to'], { description: string; wave: 2 | 3 }> = {
-  '/mi-semana': { description: 'Tu plan semanal de contactos y avance de cuota.', wave: 2 },
+  '/mi-semana': { description: 'Tu plan semanal de contactos y avance de cuota.', wave: 3 },
   '/pipeline': { description: 'Tablero kanban de empresas por estado.', wave: 2 },
   '/empresas': { description: 'Búsqueda y ficha de empresas.', wave: 2 },
   '/cartera': { description: 'Carteras rotativas y ciclo de 3 semanas.', wave: 3 },
@@ -71,26 +73,48 @@ const PAGES: Record<NavItem['to'], { description: string; wave: 2 | 3 }> = {
   '/usuarios': { description: 'Administración de usuarios y roles.', wave: 2 },
 };
 
+/**
+ * Página real de cada entrada del menú. Cada feature añade SOLO su línea (ver docs/AGENTS.md);
+ * las que faltan muestran el placeholder de su ola.
+ */
+const PAGE_COMPONENTS: Partial<Record<NavItem['to'], ComponentType>> = {
+  // '/empresas': CompaniesPage,
+};
+
 const pageRoutes = NAV_ITEMS.map((item) => {
   const page = PAGES[item.to];
+  const Page = PAGE_COMPONENTS[item.to];
   return createRoute({
     getParentRoute: () => appRoute,
     path: item.to,
     beforeLoad: item.roles ? () => requireRole(item.roles ?? []) : undefined,
-    component: () => (
-      <PlaceholderPage
-        title={item.label}
-        description={page.description}
-        icon={item.icon}
-        wave={page.wave}
-      />
-    ),
+    component: Page
+      ? () => <Page />
+      : () => (
+          <PlaceholderPage
+            title={item.label}
+            description={page.description}
+            icon={item.icon}
+            wave={page.wave}
+          />
+        ),
   });
+});
+
+/** Ficha de empresa: /empresas/123 (la enlazan el listado de empresas, el kanban y Mi semana). */
+export const companyDetailRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/empresas/$companyId',
+  params: {
+    parse: ({ companyId }) => ({ companyId: z.coerce.number().int().positive().parse(companyId) }),
+    stringify: ({ companyId }) => ({ companyId: String(companyId) }),
+  },
+  component: CompanyDetailPage,
 });
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  appRoute.addChildren([indexRoute, ...pageRoutes]),
+  appRoute.addChildren([indexRoute, ...pageRoutes, companyDetailRoute]),
 ]);
 
 export function createAppRouter(history?: RouterHistory) {

@@ -99,6 +99,10 @@ model Company {
   createdById        Int?
   createdAt          DateTime  @default(now()) @db.DateTime2
   updatedAt          DateTime  @updatedAt @db.DateTime2
+  /// SOLO LECTURA: columna calculada PERSISTED (ruc + razón social + nombre comercial en
+  /// mayúsculas sin tildes, collation BIN2). Nunca escribirla. Buscar con
+  /// `searchText: { contains: normalizeSearchText(q) }` (ver migración search_and_board_indexes).
+  searchText         String?   @db.NVarChar(450)
 
   activity      EconomicActivity? @relation(fields: [activityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sector        EconomicSector?   @relation(fields: [sectorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -112,6 +116,11 @@ model Company {
   contracts     Contract[]
 
   @@index([status])
+  // Los 3 siguientes se crean a mano en la migración search_and_board_indexes
+  // (INCLUDE y collation BIN2 no se modelan en Prisma); se declaran para que no haya drift.
+  @@index([searchText], map: "companies_searchText_idx")
+  @@index([status, lastContactAt, employeeCount(sort: Desc), id], map: "companies_board_idx")
+  @@index([status, legalName], map: "companies_status_legalName_idx")
   @@index([legalName])
   @@index([tradeName])
   @@index([sectorId, activityId])

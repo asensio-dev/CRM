@@ -21,7 +21,7 @@ describe('board SQL', () => {
   test('text search → single window query; values parameterised, never concatenated', () => {
     const q = "x'; DROP TABLE companies; --";
     const sql = buildBoardSql({ limitPerColumn: 5, sectorId: 3, activityId: 8, q });
-    expect(sql.values).toEqual([3, 8, `%${q}%`, `%${q}%`, `%${q}%`, 5]);
+    expect(sql.values).toEqual([3, 8, `%${q.toUpperCase()}%`, 5]);
     expect(sql.sql).toContain('ROW_NUMBER() OVER (PARTITION BY c.[status]');
     expect(sql.sql).toContain('COUNT(*) OVER (PARTITION BY c.[status])');
     expect(sql.sql).not.toContain('DROP TABLE');

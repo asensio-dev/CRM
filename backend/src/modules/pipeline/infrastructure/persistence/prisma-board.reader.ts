@@ -2,6 +2,7 @@ import {
   type BoardCardDto,
   type BoardDto,
   type BoardQuery,
+  normalizeSearchText,
   PIPELINE_STATUSES,
   type PipelineStatus,
 } from '@axiom/contracts';
@@ -31,10 +32,9 @@ function boardFilters(query: BoardQuery): Prisma.Sql[] {
     filters.push(Prisma.sql`c.[activityId] = ${query.activityId}`);
   }
   if (query.q) {
-    const pattern = `%${escapeLike(query.q)}%`;
-    filters.push(
-      Prisma.sql`(c.[legalName] LIKE ${pattern} ESCAPE '!' OR c.[tradeName] LIKE ${pattern} ESCAPE '!' OR c.[ruc] LIKE ${pattern} ESCAPE '!')`,
-    );
+    // Columna calculada normalizada con collation BIN2 + índice (migración search_and_board_indexes)
+    const pattern = `%${escapeLike(normalizeSearchText(query.q))}%`;
+    filters.push(Prisma.sql`c.[searchText] LIKE ${pattern} ESCAPE '!'`);
   }
   return filters;
 }

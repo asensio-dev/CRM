@@ -21,13 +21,7 @@ describe('toPrismaCompanyWhere', () => {
     );
     expect(where).toEqual({
       AND: [
-        {
-          OR: [
-            { ruc: { contains: 'acme' } },
-            { legalName: { contains: 'acme' } },
-            { tradeName: { contains: 'acme' } },
-          ],
-        },
+        { searchText: { contains: 'ACME' } },
         { status: { in: ['CONTACTADO', 'SIN_RESPUESTA'] } },
         { sectorId: 2 },
         { activityId: 7 },
