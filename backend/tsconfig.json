@@ -6,5 +6,5 @@
     "useDefineForClassFields": false,
     "strictPropertyInitialization": false
   },
-  "include": ["src", "prisma", "scripts", "prisma.config.ts"]
+  "include": ["src", "prisma", "scripts", "test", "prisma.config.ts"]
 }
