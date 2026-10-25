@@ -20,6 +20,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   type AuthenticatedUser,
   CurrentUser,
@@ -32,6 +33,8 @@ import { ResetUserPasswordUseCase } from '../../application/use-cases/reset-user
 import { UpdateUserUseCase } from '../../application/use-cases/update-user.use-case';
 
 @Roles('ADMIN')
+@ApiTags('Usuarios')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(

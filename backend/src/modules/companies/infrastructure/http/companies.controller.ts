@@ -12,6 +12,7 @@ import {
   UpdateCompanySchema,
 } from '@axiom/contracts';
 import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   type AuthenticatedUser,
   CurrentUser,
@@ -27,6 +28,8 @@ import { UpdateCompanyUseCase } from '../../application/use-cases/update-company
 const canViewSensitive = (user: AuthenticatedUser | undefined): boolean =>
   user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
 
+@ApiTags('Empresas')
+@ApiBearerAuth()
 @Controller('companies')
 export class CompaniesController {
   constructor(

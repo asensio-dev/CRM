@@ -10,6 +10,7 @@ import {
   WeeklyActivityQuerySchema,
 } from '@axiom/contracts';
 import { Controller, Get, Query, UnauthorizedException } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   type AuthenticatedUser,
   CurrentUser,
@@ -28,6 +29,8 @@ function actorOf(user: AuthenticatedUser | undefined): AnalyticsActor {
   return { userId: user.id, role: user.role };
 }
 
+@ApiTags('Analítica')
+@ApiBearerAuth()
 @Controller('analytics')
 export class AnalyticsController {
   constructor(

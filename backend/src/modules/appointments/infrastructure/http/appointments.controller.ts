@@ -27,6 +27,7 @@ import {
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   type AuthenticatedUser,
   CurrentUser,
@@ -48,6 +49,8 @@ function actorOf(user: AuthenticatedUser | undefined): AppointmentActor {
 }
 
 /** EJECUTIVO gestiona sus citas; SUPERVISOR y ADMIN todas (la regla vive en los casos de uso). */
+@ApiTags('Citas')
+@ApiBearerAuth()
 @Controller('appointments')
 export class AppointmentsController {
   constructor(
