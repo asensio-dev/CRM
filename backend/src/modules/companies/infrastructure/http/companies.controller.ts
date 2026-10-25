@@ -10,8 +10,19 @@ import {
   type Paginated,
   type UpdateCompany,
   UpdateCompanySchema,
+  type UserRole,
 } from '@axiom/contracts';
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   type AuthenticatedUser,
@@ -27,6 +38,12 @@ import { UpdateCompanyUseCase } from '../../application/use-cases/update-company
 /** La cédula del representante es dato personal: solo ADMIN y SUPERVISOR. Sin usuario = mínimo privilegio. */
 const canViewSensitive = (user: AuthenticatedUser | undefined): boolean =>
   user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
+
+/** Escrituras: sin usuario no hay actor (el guard global ya lo exige; esto es defensa en profundidad). */
+function actorOf(user: AuthenticatedUser | undefined): { userId: number; role: UserRole } {
+  if (!user) throw new UnauthorizedException('Autenticación requerida');
+  return { userId: user.id, role: user.role };
+}
 
 @ApiTags('Empresas')
 @ApiBearerAuth()
@@ -70,7 +87,7 @@ export class CompaniesController {
     @Body(new ZodValidationPipe(UpdateCompanySchema)) body: UpdateCompany,
     @CurrentUser() user?: AuthenticatedUser,
   ): Promise<CompanyDetail> {
-    await this.updateCompany.execute({ id, changes: body });
+    await this.updateCompany.execute({ id, changes: body, actor: actorOf(user) });
     return this.getDetail.execute({ id, canViewSensitive: canViewSensitive(user) });
   }
 
@@ -80,7 +97,7 @@ export class CompaniesController {
     @Body(new ZodValidationPipe(CreateBranchSchema)) body: CreateBranch,
     @CurrentUser() user?: AuthenticatedUser,
   ): Promise<CompanyDetail> {
-    await this.addBranch.execute({ companyId: id, branch: body });
+    await this.addBranch.execute({ companyId: id, branch: body, actor: actorOf(user) });
     return this.getDetail.execute({ id, canViewSensitive: canViewSensitive(user) });
   }
 }

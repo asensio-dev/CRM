@@ -5,6 +5,7 @@ import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { UNIT_OF_WORK } from '../../../../shared/application';
 import { DomainExceptionFilter } from '../../../../shared/infrastructure/http/domain-exception.filter';
+import { COMPANY_ACCESS_POLICY } from '../../../pipeline';
 import { AddCompanyBranchUseCase } from '../../application/use-cases/add-company-branch.use-case';
 import { CreateCompanyUseCase } from '../../application/use-cases/create-company.use-case';
 import { GetCompanyDetailUseCase } from '../../application/use-cases/get-company-detail.use-case';
@@ -50,6 +51,14 @@ beforeAll(async () => {
     providers: [
       { provide: COMPANY_READER, useValue: repo },
       { provide: COMPANY_WRITER, useValue: repo },
+      // Cartera simulada: el EJECUTIVO de prueba solo tiene asignada la empresa 1
+      {
+        provide: COMPANY_ACCESS_POLICY,
+        useValue: {
+          canOperate: async (actor: { role: string }, id: number) =>
+            actor.role !== 'EJECUTIVO' || id === 1,
+        },
+      },
       { provide: UNIT_OF_WORK, useValue: { run: <T>(work: () => Promise<T>) => work() } },
       SearchCompaniesUseCase,
       GetCompanyDetailUseCase,
@@ -139,10 +148,12 @@ describe('CompaniesController', () => {
   });
 
   test('POST branches adds a branch', async () => {
-    const res = await call('POST', '/companies/1/branches', {
-      address: 'Masaya',
-      employeeCount: 2,
-    });
+    const res = await call(
+      'POST',
+      '/companies/1/branches',
+      { address: 'Masaya', employeeCount: 2 },
+      'SUPERVISOR',
+    );
     expect(res.status).toBe(201);
     expect(res.json.branches ?? []).toHaveLength(1);
     expect(res.json.branches?.[0]?.address).toBe('Masaya');
@@ -159,6 +170,17 @@ describe('CompaniesController', () => {
     expect(res.json.items?.[0]?.ruc).toBe('J200');
     expect(res.json.pageSize).toBe(10);
     expect('legalRepIdNumber' in (res.json.items?.[0] ?? {})).toBe(false);
+  });
+
+  test('EJECUTIVO: 403 al editar o añadir sucursal fuera de su cartera; 401 sin usuario', async () => {
+    const edit = await call('PATCH', '/companies/2', { phone: '22229999' }, 'EJECUTIVO');
+    expect(edit.status).toBe(403);
+    expect(edit.json.code).toBe('PORTFOLIO_COMPANY_NOT_ASSIGNED');
+    const branch = await call('POST', '/companies/2/branches', { address: 'León' }, 'EJECUTIVO');
+    expect(branch.status).toBe(403);
+    expect((await call('PATCH', '/companies/2', { phone: '22229999' })).status).toBe(401);
+    const admin = await call('PATCH', '/companies/2', { employeeCount: 4 }, 'ADMIN');
+    expect(admin.status).toBe(200);
   });
 
   test('GET list rejects invalid query params', async () => {

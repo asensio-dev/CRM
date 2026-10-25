@@ -58,8 +58,9 @@ export const RucSchema = z.string().transform((v, ctx) => {
 //   GET   /api/companies               CompanySearchQuery → Paginated<CompanyListItem>
 //   GET   /api/companies/:id           → CompanyDetail (con sucursales; cédula solo ADMIN/SUPERVISOR)
 //   POST  /api/companies               CreateCompany → CompanyDetail (estado POR_CONTACTAR, source MANUAL)
-//   PATCH /api/companies/:id           UpdateCompany → CompanyDetail (no cambia estado ni RUC)
-//   POST  /api/companies/:id/branches  CreateBranch → CompanyDetail
+//   PATCH /api/companies/:id           UpdateCompany → CompanyDetail (no cambia estado ni RUC;
+//                                      EJECUTIVO solo su cartera activa, si no 403 PORTFOLIO_COMPANY_NOT_ASSIGNED)
+//   POST  /api/companies/:id/branches  CreateBranch → CompanyDetail (misma regla de cartera que PATCH)
 //   GET   /api/catalogs/sectors        → CatalogItem[]
 //   GET   /api/catalogs/activities     CatalogQuery → CatalogItem[]
 

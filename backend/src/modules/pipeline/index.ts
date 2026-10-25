@@ -2,6 +2,7 @@
 export type { CompanyAccessPolicy } from './application/ports/company-access-policy';
 export {
   AllowAllCompanyAccessPolicy,
+  assertCanOperate,
   COMPANY_ACCESS_POLICY,
 } from './application/ports/company-access-policy';
 export type { ChangeCompanyStatusInput } from './application/use-cases/change-company-status.use-case';
