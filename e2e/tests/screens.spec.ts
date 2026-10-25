@@ -17,8 +17,9 @@ test.describe
 
       await page.getByRole('button', { name: 'Ejecutar rotación semanal' }).click();
       await page.getByRole('button', { name: 'Ejecutar ahora' }).click();
-      // La pantalla se refresca con el ciclo ya abierto. (Ni el resumen ni el toast aparecen porque el
-      // botón vive dentro del estado vacío y se desmonta al refrescar: ver docs/testing.md, hallazgos.)
+      // El resumen sobrevive al refresco de la pantalla (el diálogo vive fuera del estado vacío).
+      await expect(page.getByTestId('run-weekly-result')).toContainText('abierto');
+      await page.getByRole('button', { name: 'Listo' }).click();
       await expect(page.getByText('Aún no hay un ciclo activo')).toBeHidden();
       await expect(page.getByRole('combobox', { name: 'Ejecutivo' })).toBeVisible();
       await logout(page);

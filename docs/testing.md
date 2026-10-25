@@ -79,16 +79,22 @@ contienen tokens). `bun run typecheck:e2e` comprueba los tipos de `e2e/`.
 `AxiomCRM_Test`, migra, siembra y prueba (la contraseña de `sa` viene de `secrets.CI_MSSQL_SA_PASSWORD`; nada de credenciales
 en el workflow). El job `e2e` solo corre con `workflow_dispatch` (Actions → CI → Run workflow) y sube el informe HTML si falla.
 
-## Hallazgos conocidos (pruebas marcadas)
+## Hallazgos de las pruebas
 
-- **Carrera de refresh al recargar** (`e2e/tests/session-race.spec.ts`, `test.fail`): recargar la página mientras
-  `POST /api/auth/refresh` sigue en vuelo deja al navegador con el refresh token ya rotado; la siguiente carga lo reutiliza,
-  el servidor lo trata como robo y revoca toda la familia → el usuario vuelve a `/login`. Mitigación posible: ventana de
-  gracia (p. ej. 10-30 s) en `RefreshSessionUseCase` que acepte el token recién rotado y devuelva su sucesor.
-- **Resumen de «Ejecutar rotación semanal» invisible desde Mi semana**: el botón vive dentro del estado vacío («Aún no hay un
-  ciclo activo»); al terminar la mutación la pantalla se refresca, ese estado vacío se desmonta y con él el diálogo con el
-  resumen y el callback del toast (no se muestra nada). Desde Cartera (botón del encabezado) sí funciona. Solución: montar el
-  diálogo fuera del `EmptyState` o usar `onSuccess` en el `useMutation`.
+Corregidos (las pruebas quedan como regresión):
+
+- **Carrera de refresh al recargar** (`e2e/tests/session-race.spec.ts`, `auth.int.test.ts`): recargar con
+  `POST /api/auth/refresh` en vuelo hacía que el navegador reenviara el token ya rotado y se revocara toda la familia.
+  Corregido con un margen de gracia de 30 s (ADR 0007).
+- **Resumen de «Ejecutar rotación semanal» invisible desde Mi semana** (`e2e/tests/screens.spec.ts`,
+  `my-week.test.tsx`): el diálogo vivía dentro del estado vacío que se desmonta al refrescar. Ahora se monta en la raíz
+  de la página (`RunWeeklyDialog`).
+- **Libro solo con encabezados**: ahora termina `FALLIDO` (`IMPORT_EMPTY_FILE`) en vez de `COMPLETADO` con 0 filas.
+- **Nota automática del historial** con códigos crudos (`WHATSAPP / INTERESADO`): ahora usa las etiquetas en español
+  compartidas en `@axiom/contracts`.
+
+Abiertos:
+
 - Un `.xlsx` guardado por ExcelJS (no por Excel) escribe `xl/workbook.xml` al final del zip y el lector en streaming de la
   importación falla con `this.model.sheets` indefinido; los fixtures de pruebas lo reempaquetan en el orden de Excel
-  (`reorderLikeExcel`). Un libro con solo encabezados (sin filas) termina `COMPLETADO` con 0 filas en vez de `FALLIDO`.
+  (`reorderLikeExcel`). Los archivos guardados por Excel no tienen el problema.
