@@ -167,14 +167,17 @@ export function contactedByUserSql(scope: AnalyticsScope, range: UtcRange): Pris
     ${whereAll(conditions)} GROUP BY i.[userId]`;
 }
 
-/** Empresas de la cartera activa con al menos una interacción propia dentro del ciclo. */
+/**
+ * Empresas de la cartera activa con al menos una interacción (de cualquier usuario) dentro del ciclo.
+ * Misma regla que el módulo portfolio (ADR 0006), que la usa para armar los planes semanales.
+ */
 export function contactedInCycleByUserSql(scope: AnalyticsScope, cycle: UtcRange): Prisma.Sql {
   const conditions = [Prisma.sql`pa.[releasedAt] IS NULL`];
   if (scope.userId !== undefined) conditions.push(Prisma.sql`pa.[userId] = ${scope.userId}`);
   const inCycle = between(Prisma.sql`i.[occurredAt]`, cycle);
   conditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM [dbo].[interactions] i
-      WHERE i.[companyId] = pa.[companyId] AND i.[userId] = pa.[userId] AND ${Prisma.join(inCycle, ' AND ')}
+      WHERE i.[companyId] = pa.[companyId] AND ${Prisma.join(inCycle, ' AND ')}
     )`);
   return Prisma.sql`
     SELECT pa.[userId] AS [userId], COUNT(*) AS [total]
