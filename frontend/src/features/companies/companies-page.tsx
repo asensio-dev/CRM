@@ -47,6 +47,7 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
   },
   {
     id: 'legalName',
+    accessorFn: (c) => c.legalName,
     header: 'Razón social',
     enableSorting: true,
     meta: { className: 'min-w-64' },
@@ -69,6 +70,7 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
   },
   {
     id: 'employeeCount',
+    accessorFn: (c) => c.employeeCount,
     header: 'Empleados',
     enableSorting: true,
     meta: { className: 'text-right' },
@@ -90,6 +92,7 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
   },
   {
     id: 'lastContactAt',
+    accessorFn: (c) => c.lastContactAt,
     header: 'Último contacto',
     enableSorting: true,
     cell: ({ row }) => <LastContact iso={row.original.lastContactAt} />,

@@ -14,7 +14,9 @@ import { redirectIfAuthenticated, requireAuth, requireRole } from '@/features/au
 import { LoginPage } from '@/features/auth/login-page';
 import { CompaniesPage } from '@/features/companies';
 import { CompanyDetailPage } from '@/features/company-detail/company-detail-page';
+import { ImportPage } from '@/features/import';
 import { PipelinePage } from '@/features/pipeline';
+import { UsersPage } from '@/features/users';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { PlaceholderPage } from '@/shared/ui/placeholder-page';
@@ -82,6 +84,8 @@ const PAGES: Record<NavItem['to'], { description: string; wave: 2 | 3 }> = {
 const PAGE_COMPONENTS: Partial<Record<NavItem['to'], ComponentType>> = {
   '/pipeline': PipelinePage,
   '/empresas': CompaniesPage,
+  '/importacion': ImportPage,
+  '/usuarios': UsersPage,
 };
 
 const pageRoutes = NAV_ITEMS.map((item) => {
