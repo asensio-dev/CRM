@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AnalyticsModule } from './modules/analytics';
+import { AppointmentsModule } from './modules/appointments';
 import { CatalogsModule } from './modules/catalogs';
 import { CompaniesModule } from './modules/companies';
+import { ContractsModule } from './modules/contracts';
 import { IdentityModule } from './modules/identity';
 import { ImportModule } from './modules/import';
 import { PipelineModule } from './modules/pipeline';
@@ -20,6 +22,8 @@ import { SharedModule } from './shared/infrastructure/shared.module';
     PipelineModule,
     ImportModule,
     AnalyticsModule,
+    AppointmentsModule,
+    ContractsModule,
   ],
   controllers: [HealthController],
 })
