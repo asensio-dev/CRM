@@ -16,6 +16,7 @@
     "db:seed": "prisma db seed",
     "db:bootstrap": "bun scripts/bootstrap-local-db.ts",
     "db:import": "bun scripts/import-companies.ts",
+    "db:seed:activity": "bun scripts/seed-activity.ts",
     "postinstall": "prisma generate",
     "arch": "depcruise src --config .dependency-cruiser.cjs"
   },
