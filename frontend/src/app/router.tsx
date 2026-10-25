@@ -10,6 +10,7 @@ import {
 import { Compass } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { z } from 'zod';
+import { AppointmentsPage } from '@/features/appointments';
 import { redirectIfAuthenticated, requireAuth, requireRole } from '@/features/auth/guards';
 import { LoginPage } from '@/features/auth/login-page';
 import { CompaniesPage } from '@/features/companies';
@@ -89,6 +90,7 @@ const PAGE_COMPONENTS: Partial<Record<NavItem['to'], ComponentType>> = {
   '/cartera': PortfolioPage,
   '/pipeline': PipelinePage,
   '/tablero': DashboardPage,
+  '/citas': AppointmentsPage,
   '/empresas': CompaniesPage,
   '/importacion': ImportPage,
   '/usuarios': UsersPage,
