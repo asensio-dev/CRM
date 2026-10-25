@@ -18,7 +18,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { SkipThrottle, Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
   type AuthenticatedUser,
@@ -49,7 +49,7 @@ export class AuthController {
 
   @Public()
   @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // + `account` (LOGIN_THROTTLERS): 10 / 15 min
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async doLogin(
@@ -62,6 +62,7 @@ export class AuthController {
   @Public()
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @SkipThrottle({ account: true }) // sin correo en el cuerpo: el límite por cuenta no aplica
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async doRefresh(

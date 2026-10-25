@@ -15,6 +15,7 @@ import {
   USER_REPOSITORY,
   type UserRepository,
 } from '../../domain';
+import { ActiveSessionChecker } from '../active-session-checker';
 
 @Injectable()
 export class ResetUserPasswordUseCase
@@ -26,6 +27,7 @@ export class ResetUserPasswordUseCase
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
     @Inject(UNIT_OF_WORK) private readonly uow: UnitOfWork,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly sessions: ActiveSessionChecker,
   ) {}
 
   async execute(input: { userId: number; newPassword: string }): Promise<void> {
@@ -37,5 +39,7 @@ export class ResetUserPasswordUseCase
       await this.users.save(user);
       await this.refreshTokens.revokeAllForUser(input.userId, this.clock.now());
     });
+    // Un reset suele responder a un compromiso: los access tokens ya emitidos dejan de valer.
+    this.sessions.revokeSessions(input.userId);
   }
 }

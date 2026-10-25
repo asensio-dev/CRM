@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { CreateBranchSchema, CreateCompanySchema } from '@axiom/contracts';
 import type { UnitOfWork } from '../../../../shared/application';
 import { DomainError } from '../../../../shared/domain';
+import type { CompanyAccessPolicy } from '../../../pipeline';
 import { InMemoryCompanyRepository } from '../../infrastructure/persistence/in-memory-company.repository';
 import { AddCompanyBranchUseCase } from './add-company-branch.use-case';
 import { CreateCompanyUseCase } from './create-company.use-case';
@@ -10,6 +11,14 @@ import { SearchCompaniesUseCase } from './search-companies.use-case';
 import { UpdateCompanyUseCase } from './update-company.use-case';
 
 const uow: UnitOfWork = { run: (work) => work() };
+
+/** Cartera simulada: el EJECUTIVO 7 solo tiene asignadas las empresas de `assigned`. */
+const assigned = new Set<number>();
+const portfolioPolicy: CompanyAccessPolicy = {
+  canOperate: async (actor, companyId) => actor.role !== 'EJECUTIVO' || assigned.has(companyId),
+};
+const admin = { userId: 1, role: 'ADMIN' as const };
+const executive = { userId: 7, role: 'EJECUTIVO' as const };
 
 let repo: InMemoryCompanyRepository;
 let create: CreateCompanyUseCase;
@@ -35,8 +44,8 @@ beforeEach(() => {
   repo.sectors.set(1, 'PRIVADA NACIONAL');
   repo.activities.set(10, 'COMERCIO');
   create = new CreateCompanyUseCase(repo, repo, uow);
-  update = new UpdateCompanyUseCase(repo, repo, uow);
-  addBranch = new AddCompanyBranchUseCase(repo, uow);
+  update = new UpdateCompanyUseCase(repo, repo, uow, portfolioPolicy);
+  addBranch = new AddCompanyBranchUseCase(repo, uow, portfolioPolicy);
   detail = new GetCompanyDetailUseCase(repo);
   search = new SearchCompaniesUseCase(repo);
 });
@@ -80,6 +89,7 @@ describe('UpdateCompanyUseCase', () => {
     await update.execute({
       id,
       changes: { legalName: 'Renombrada', employeeCount: 40, sectorId: 1 },
+      actor: admin,
     });
     const found = await detail.execute({ id, canViewSensitive: false });
     expect(found.legalName).toBe('Renombrada');
@@ -90,13 +100,17 @@ describe('UpdateCompanyUseCase', () => {
   });
 
   test('fails with NOT_FOUND for an unknown company', async () => {
-    const error = await rejection(update.execute({ id: 999, changes: { legalName: 'x' } }));
+    const error = await rejection(
+      update.execute({ id: 999, changes: { legalName: 'x' }, actor: admin }),
+    );
     expect(error.kind).toBe('NOT_FOUND');
   });
 
   test('rejects an unknown catalog reference', async () => {
     const { id } = await create.execute({ data: input('J011') });
-    const error = await rejection(update.execute({ id, changes: { activityId: 77 } }));
+    const error = await rejection(
+      update.execute({ id, changes: { activityId: 77 }, actor: admin }),
+    );
     expect(error.code).toBe('COMPANY_ACTIVITY_NOT_FOUND');
   });
 });
@@ -107,6 +121,7 @@ describe('AddCompanyBranchUseCase', () => {
     await addBranch.execute({
       companyId: id,
       branch: CreateBranchSchema.parse({ address: 'León', employeeCount: 3 }),
+      actor: admin,
     });
     const found = await detail.execute({ id, canViewSensitive: true });
     expect(found.branches).toHaveLength(1);
@@ -116,7 +131,44 @@ describe('AddCompanyBranchUseCase', () => {
 
   test('fails with NOT_FOUND for an unknown company', async () => {
     const error = await rejection(
-      addBranch.execute({ companyId: 5, branch: CreateBranchSchema.parse({}) }),
+      addBranch.execute({ companyId: 5, branch: CreateBranchSchema.parse({}), actor: admin }),
+    );
+    expect(error.kind).toBe('NOT_FOUND');
+  });
+});
+
+describe('escritura limitada a la cartera (EJECUTIVO)', () => {
+  test('un EJECUTIVO no edita ni añade sucursales a empresas fuera de su cartera', async () => {
+    const { id } = await create.execute({ data: input('J030') });
+    const edit = await rejection(
+      update.execute({ id, changes: { phone: '22220000' }, actor: executive }),
+    );
+    expect(edit.code).toBe('PORTFOLIO_COMPANY_NOT_ASSIGNED');
+    expect(edit.kind).toBe('FORBIDDEN');
+    const branch = await rejection(
+      addBranch.execute({ companyId: id, branch: CreateBranchSchema.parse({}), actor: executive }),
+    );
+    expect(branch.code).toBe('PORTFOLIO_COMPANY_NOT_ASSIGNED');
+    expect((await detail.execute({ id, canViewSensitive: true })).phone).toBeNull();
+  });
+
+  test('sí puede con empresas de su cartera; ADMIN/SUPERVISOR con cualquiera', async () => {
+    const { id } = await create.execute({ data: input('J031') });
+    assigned.add(id);
+    await update.execute({ id, changes: { legalName: 'Mía' }, actor: executive });
+    await update.execute({
+      id,
+      changes: { employeeCount: 3 },
+      actor: { userId: 2, role: 'SUPERVISOR' },
+    });
+    const found = await detail.execute({ id, canViewSensitive: true });
+    expect(found.legalName).toBe('Mía');
+    expect(found.employeeCount).toBe(3);
+  });
+
+  test('empresa inexistente sigue siendo 404 (no 403) para el EJECUTIVO', async () => {
+    const error = await rejection(
+      update.execute({ id: 4242, changes: { legalName: 'x' }, actor: executive }),
     );
     expect(error.kind).toBe('NOT_FOUND');
   });

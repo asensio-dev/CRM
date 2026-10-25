@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import { CLOCK, UNIT_OF_WORK } from '../../../../shared/application';
 import { APP_CONFIG } from '../../../../shared/infrastructure/config/env';
 import { DomainExceptionFilter } from '../../../../shared/infrastructure/http/domain-exception.filter';
+import { ActiveSessionChecker } from '../../application/active-session-checker';
 import { SessionIssuer } from '../../application/session-issuer';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
 import { GetMeUseCase } from '../../application/use-cases/get-me.use-case';
@@ -35,6 +36,7 @@ import {
 import { JoseTokenIssuer } from '../security/jose-token-issuer';
 import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { LOGIN_THROTTLERS } from './login-throttling';
 import { UsersController } from './users.controller';
 
 let app: INestApplication;
@@ -63,7 +65,7 @@ beforeAll(async () => {
   await seedUser(users, { email: 'ej@axiom.test', password: execPw, role: 'EJECUTIVO' });
 
   const moduleRef = await Test.createTestingModule({
-    imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 5 }])],
+    imports: [ThrottlerModule.forRoot(LOGIN_THROTTLERS)],
     controllers: [AuthController, UsersController],
     providers: [
       { provide: APP_CONFIG, useValue: testConfig() },
@@ -75,6 +77,7 @@ beforeAll(async () => {
       { provide: TOKEN_ISSUER, useClass: JoseTokenIssuer },
       { provide: APP_GUARD, useClass: JwtAuthGuard },
       SessionIssuer,
+      ActiveSessionChecker,
       LoginUseCase,
       RefreshSessionUseCase,
       LogoutUseCase,
@@ -187,6 +190,24 @@ describe('auth HTTP', () => {
       (await fetch(`${base}/users`, { headers: { authorization: `Bearer ${execToken}` } })).status,
     ).toBe(403);
     expect((await fetch(`${base}/users`)).status).toBe(401);
+  });
+
+  test('desactivar a un usuario invalida YA su access token (no espera a que caduque)', async () => {
+    const execLogin = await post('/auth/login', { email: 'ej@axiom.test', password: execPw });
+    const { accessToken: execToken, user } = (await execLogin.json()) as {
+      accessToken: string;
+      user: { id: number };
+    };
+    const asExec = { headers: { authorization: `Bearer ${execToken}` } };
+    expect((await fetch(`${base}/users`, asExec)).status).toBe(403);
+
+    const patch = await fetch(`${base}/users/${user.id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${access}` },
+      body: JSON.stringify({ isActive: false }),
+    });
+    expect(patch.status).toBe(200);
+    expect((await fetch(`${base}/users`, asExec)).status).toBe(401);
   });
 
   test('rate limit: el 6.º login por minuto devuelve 429', async () => {

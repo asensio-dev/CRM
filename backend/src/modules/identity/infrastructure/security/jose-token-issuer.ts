@@ -60,7 +60,7 @@ export class JoseTokenIssuer implements TokenIssuer {
       const role = UserRoleSchema.safeParse(payload.role);
       const userId = Number(payload.sub);
       if (payload.typ !== 'access' || !role.success || !Number.isInteger(userId)) return null;
-      return { userId, email: String(payload.email), role: role.data };
+      return { userId, email: String(payload.email), role: role.data, issuedAt: payload.iat };
     } catch {
       return null;
     }

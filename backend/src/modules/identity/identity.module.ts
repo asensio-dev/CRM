@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ActiveSessionChecker } from './application/active-session-checker';
 import { SessionIssuer } from './application/session-issuer';
 import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
 import { GetMeUseCase } from './application/use-cases/get-me.use-case';
@@ -13,6 +14,7 @@ import { UpdateUserUseCase } from './application/use-cases/update-user.use-case'
 import { PASSWORD_HASHER, REFRESH_TOKEN_REPOSITORY, TOKEN_ISSUER, USER_REPOSITORY } from './domain';
 import { AuthController } from './infrastructure/http/auth.controller';
 import { JwtAuthGuard } from './infrastructure/http/jwt-auth.guard';
+import { LOGIN_THROTTLERS } from './infrastructure/http/login-throttling';
 import { UsersController } from './infrastructure/http/users.controller';
 import { PrismaRefreshTokenRepository } from './infrastructure/persistence/prisma-refresh-token.repository';
 import { PrismaUserRepository } from './infrastructure/persistence/prisma-user.repository';
@@ -21,8 +23,8 @@ import { JoseTokenIssuer } from './infrastructure/security/jose-token-issuer';
 
 @Module({
   imports: [
-    // Límite por IP; solo se aplica donde se usa ThrottlerGuard (login/refresh).
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 5 }]),
+    // Límite por IP y por cuenta; solo se aplica donde se usa ThrottlerGuard (login/refresh).
+    ThrottlerModule.forRoot(LOGIN_THROTTLERS),
   ],
   controllers: [AuthController, UsersController],
   providers: [
@@ -32,6 +34,7 @@ import { JoseTokenIssuer } from './infrastructure/security/jose-token-issuer';
     { provide: TOKEN_ISSUER, useClass: JoseTokenIssuer },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     SessionIssuer,
+    ActiveSessionChecker,
     LoginUseCase,
     RefreshSessionUseCase,
     LogoutUseCase,

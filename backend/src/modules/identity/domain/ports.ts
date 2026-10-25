@@ -11,6 +11,8 @@ export interface AccessClaims {
   userId: number;
   email: string;
   role: UserRole;
+  /** `iat` (segundos) del token verificado; se ignora al emitir. */
+  issuedAt?: number;
 }
 
 export interface IssuedRefreshToken {

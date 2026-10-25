@@ -24,11 +24,15 @@ export const IMPORT_BATCH_SIZE = 100;
 export const WRITE_CONCURRENCY = 4;
 /** El progreso del job se persiste cada N lotes. */
 export const PROGRESS_EVERY_BATCHES = 10;
+/** Tope de filas por importación (el Excel real tiene ~127 k): acota CPU, memoria y escrituras. */
+export const MAX_IMPORT_ROWS = 500_000;
 
 export interface ImportCompaniesInput {
   jobId: number;
   filePath: string;
   onProgress?: (summary: ImportSummary) => void;
+  /** Por defecto MAX_IMPORT_ROWS. */
+  maxRows?: number;
 }
 
 export interface ImportSummary {
@@ -61,6 +65,7 @@ export class ImportCompaniesUseCase implements UseCase<ImportCompaniesInput, Imp
   async execute(input: ImportCompaniesInput): Promise<ImportSummary> {
     const startedAt = Date.now();
     const { jobId } = input;
+    const maxRows = input.maxRows ?? MAX_IMPORT_ROWS;
     const dedup = new ImportDeduplicator();
     const s: ImportSummary = {
       jobId,
@@ -150,6 +155,12 @@ export class ImportCompaniesUseCase implements UseCase<ImportCompaniesInput, Imp
           }
         }
         s.totalRows++;
+        if (s.totalRows > maxRows) {
+          throw DomainError.validation(
+            'IMPORT_TOO_MANY_ROWS',
+            `El archivo supera el máximo de ${maxRows} filas por importación`,
+          );
+        }
         this.classify(row, dedup, s, {
           company: (c) => companies.push(c),
           branch: (b) => deferredBranches.push(b),

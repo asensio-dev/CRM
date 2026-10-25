@@ -1,6 +1,7 @@
 import { SETTING_DEFAULTS } from '@axiom/contracts';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { safeErrorLog } from '../../../../shared/infrastructure/http/domain-exception.filter';
 import { RunWeeklyRotationUseCase } from '../../application/use-cases/run-weekly-rotation.use-case';
 
 /** Lunes 06:00 en la zona del negocio. */
@@ -32,7 +33,7 @@ export class WeeklyRotationScheduler {
           ` | planes=${r.plans.generated} (${r.plans.items} ítems)`,
       );
     } catch (error) {
-      this.logger.error('La rotación semanal falló', error);
+      this.logger.error('La rotación semanal falló', safeErrorLog(error));
     }
   }
 }

@@ -180,6 +180,14 @@ describe('ImportCompaniesUseCase', () => {
     expect(jobs.error).toBe('boom');
   });
 
+  test('falla el job si el archivo supera el tope de filas', async () => {
+    const { jobs, useCase } = setup(Array.from({ length: 11 }, (_, i) => company(i + 1)));
+    await expect(useCase.execute({ jobId: 1, filePath: 'x.xlsx', maxRows: 10 })).rejects.toThrow(
+      'máximo de 10 filas',
+    );
+    expect(jobs.status).toBe('FALLIDO');
+  });
+
   test('archivo sin filas de datos completa con cero filas', async () => {
     const { jobs, useCase } = setup([]);
     const summary = await useCase.execute({ jobId: 1, filePath: 'x.xlsx' });
