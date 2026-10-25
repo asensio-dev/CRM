@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { AnalyticsModule } from './modules/analytics';
 import { CatalogsModule } from './modules/catalogs';
 import { CompaniesModule } from './modules/companies';
 import { IdentityModule } from './modules/identity';
@@ -18,6 +19,7 @@ import { SharedModule } from './shared/infrastructure/shared.module';
     CatalogsModule,
     PipelineModule,
     ImportModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
 })
