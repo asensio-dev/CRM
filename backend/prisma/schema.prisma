@@ -48,6 +48,8 @@ model RefreshToken {
   tokenHash String    @unique @db.NVarChar(255)
   expiresAt DateTime  @db.DateTime2
   revokedAt DateTime? @db.DateTime2
+  /// Marca de ROTACIÓN (no logout ni robo): habilita el margen de gracia de RefreshSession (ADR 0007)
+  replacedAt DateTime? @db.DateTime2
   createdAt DateTime  @default(now()) @db.DateTime2
 
   user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)

@@ -94,7 +94,7 @@ describe('auth: refresh con rotación y detección de reutilización', () => {
   });
   afterAll(() => t.close());
 
-  test('rota el refresh token; reutilizar el anterior revoca TODA la familia', async () => {
+  test('rota el refresh token; reenviar el anterior dentro del margen de gracia (ADR 0007) da sesión nueva y revoca el sucesor perdido', async () => {
     const first = await t.login('exec2');
     expect(first.cookie).toStartWith('refresh_token=');
 
@@ -107,10 +107,22 @@ describe('auth: refresh con rotación y detección de reutilización', () => {
     expect(second).not.toBe(first.cookie);
     expect(rotated.body.accessToken).toBeTruthy();
 
-    // El token ya rotado se reutiliza → 401…
-    expectError(await t.api('POST', '/auth/refresh', { cookie: first.cookie }), 401);
-    // …y el token nuevo (misma familia) también queda invalidado.
+    // Recarga con el refresh en vuelo: el navegador reenvía el token ya rotado → sesión nueva…
+    const retried = await t.api<{ accessToken: string }>('POST', '/auth/refresh', {
+      cookie: first.cookie,
+    });
+    expect(retried.status).toBe(200);
+    // …y el sucesor que el navegador nunca guardó queda invalidado.
     expectError(await t.api('POST', '/auth/refresh', { cookie: second as string }), 401);
+  });
+
+  test('reutilizar un token rotado cuyo sucesor se cerró con logout → 401 (no revive la sesión)', async () => {
+    const first = await t.login('exec2');
+    const rotated = await t.api('POST', '/auth/refresh', { cookie: first.cookie });
+    const second = cookieFrom(rotated.headers) as string;
+    const out = await t.api('POST', '/auth/logout', { cookie: second });
+    expect(out.status).toBe(204);
+    expectError(await t.api('POST', '/auth/refresh', { cookie: first.cookie }), 401);
   });
 
   test('refresh sin cookie → 401', async () => {

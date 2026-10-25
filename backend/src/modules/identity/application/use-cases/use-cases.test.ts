@@ -17,7 +17,7 @@ import { GetMeUseCase } from './get-me.use-case';
 import { ListUsersUseCase } from './list-users.use-case';
 import { LoginUseCase } from './login.use-case';
 import { LogoutUseCase } from './logout.use-case';
-import { RefreshSessionUseCase } from './refresh-session.use-case';
+import { REFRESH_REUSE_GRACE_MS, RefreshSessionUseCase } from './refresh-session.use-case';
 import { ResetUserPasswordUseCase } from './reset-user-password.use-case';
 import { UpdateUserUseCase } from './update-user.use-case';
 
@@ -37,6 +37,7 @@ beforeEach(() => {
   clock = new FakeClock();
   users = new InMemoryUserRepository();
   tokensRepo = new InMemoryRefreshTokenRepository();
+  tokensRepo.now = () => clock.now();
   issuer = makeIssuer(clock);
   const hasher = new FakeHasher();
   const sessions = new SessionIssuer(issuer, tokensRepo);
@@ -158,10 +159,11 @@ describe('RefreshSession', () => {
     expect(s3.user.id).toBe(s1.user.id);
   });
 
-  test('reutilizar un token ya rotado revoca todos los tokens del usuario', async () => {
+  test('reutilizar un token rotado DESPUÉS del margen de gracia revoca todos los tokens', async () => {
     await seedUser(users, { email: 'ana@axiom.test', password });
     const s1 = await login.execute({ email: 'ana@axiom.test', password });
     const s2 = await refresh.execute({ refreshToken: s1.refreshToken });
+    clock.advanceSeconds(REFRESH_REUSE_GRACE_MS / 1000 + 1);
     await expect(refresh.execute({ refreshToken: s1.refreshToken })).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
@@ -170,6 +172,41 @@ describe('RefreshSession', () => {
       UnauthorizedException,
     );
     expect([...tokensRepo.rows.values()].every((r) => r.revokedAt)).toBe(true);
+  });
+
+  test('recarga durante el refresh (dentro del margen): emite sesión nueva y revoca el sucesor perdido', async () => {
+    await seedUser(users, { email: 'ana@axiom.test', password });
+    const s1 = await login.execute({ email: 'ana@axiom.test', password });
+    const lost = await refresh.execute({ refreshToken: s1.refreshToken }); // el navegador no la guardó
+    clock.advanceSeconds(5);
+    const s3 = await refresh.execute({ refreshToken: s1.refreshToken });
+    expect(s3.user.email).toBe('ana@axiom.test');
+    await expect(refresh.execute({ refreshToken: s3.refreshToken })).resolves.toBeDefined();
+    clock.advanceSeconds(REFRESH_REUSE_GRACE_MS / 1000 + 1);
+    // el sucesor perdido quedó revocado y ya fuera del margen: reutilizarlo es robo
+    await expect(refresh.execute({ refreshToken: lost.refreshToken })).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  test('dentro del margen NO revive sesiones cerradas con logout', async () => {
+    await seedUser(users, { email: 'ana@axiom.test', password });
+    const s1 = await login.execute({ email: 'ana@axiom.test', password });
+    const s2 = await refresh.execute({ refreshToken: s1.refreshToken });
+    await logout.execute({ refreshToken: s2.refreshToken });
+    await expect(refresh.execute({ refreshToken: s1.refreshToken })).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  test('un token revocado por logout nunca usa el margen de gracia', async () => {
+    await seedUser(users, { email: 'ana@axiom.test', password });
+    const s1 = await login.execute({ email: 'ana@axiom.test', password });
+    await login.execute({ email: 'ana@axiom.test', password }); // otra sesión activa del usuario
+    await logout.execute({ refreshToken: s1.refreshToken });
+    await expect(refresh.execute({ refreshToken: s1.refreshToken })).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
   });
 
   test('rechaza tokens basura, caducados y de usuarios desactivados', async () => {

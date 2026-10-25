@@ -13,16 +13,34 @@ export class PrismaRefreshTokenRepository implements RefreshTokenRepository {
   async findByHash(tokenHash: string): Promise<StoredRefreshToken | null> {
     const row = await this.prisma.db.refreshToken.findUnique({ where: { tokenHash } });
     return row
-      ? { id: row.id, userId: row.userId, expiresAt: row.expiresAt, revokedAt: row.revokedAt }
+      ? {
+          id: row.id,
+          userId: row.userId,
+          expiresAt: row.expiresAt,
+          revokedAt: row.revokedAt,
+          replacedAt: row.replacedAt,
+        }
       : null;
   }
 
-  async revokeIfActive(tokenHash: string, now: Date): Promise<boolean> {
+  async revokeIfActive(
+    tokenHash: string,
+    now: Date,
+    options: { replaced?: boolean } = {},
+  ): Promise<boolean> {
     const { count } = await this.prisma.db.refreshToken.updateMany({
       where: { tokenHash, revokedAt: null },
-      data: { revokedAt: now },
+      data: { revokedAt: now, replacedAt: options.replaced ? now : null },
     });
     return count === 1;
+  }
+
+  async revokeActiveIssuedSince(userId: number, since: Date, now: Date): Promise<number> {
+    const { count } = await this.prisma.db.refreshToken.updateMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: now }, createdAt: { gte: since } },
+      data: { revokedAt: now },
+    });
+    return count;
   }
 
   async revokeAllForUser(userId: number, now: Date): Promise<void> {

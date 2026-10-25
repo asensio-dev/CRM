@@ -132,13 +132,17 @@ describe('auth HTTP', () => {
     expect((await post('/auth/login', { email: 'no' })).status).toBe(400);
   });
 
-  test('refresh rota la cookie; el token viejo ya no sirve', async () => {
+  test('refresh rota la cookie; reenviar la vieja en el margen de gracia invalida la "perdida"', async () => {
     const res = await post('/auth/refresh', undefined, { cookie });
     expect(res.status).toBe(200);
     expect(((await res.json()) as { accessToken: string }).accessToken).toBeTruthy();
     const next = cookieOf(res) as string;
     expect(next).not.toBe(cookie);
-    expect((await post('/auth/refresh', undefined, { cookie })).status).toBe(401);
+    // Recarga en vuelo: el navegador reenvía la cookie vieja (ADR 0007) → sesión nueva…
+    const retry = await post('/auth/refresh', undefined, { cookie });
+    expect(retry.status).toBe(200);
+    // …y la cookie que el navegador nunca guardó queda revocada.
+    expect((await post('/auth/refresh', undefined, { cookie: next })).status).toBe(401);
     expect((await post('/auth/refresh')).status).toBe(401);
   });
 

@@ -47,13 +47,20 @@ export interface StoredRefreshToken {
   userId: number;
   expiresAt: Date;
   revokedAt: Date | null;
+  /** Momento en que se rotó (sustituyó por otro). null si se revocó por logout/robo o sigue activo. */
+  replacedAt: Date | null;
 }
 
 export interface RefreshTokenRepository {
   create(input: { userId: number; tokenHash: string; expiresAt: Date }): Promise<void>;
   findByHash(tokenHash: string): Promise<StoredRefreshToken | null>;
-  /** Revoca de forma atómica solo si seguía activo. `false` = ya estaba revocado (carrera/reutilización). */
-  revokeIfActive(tokenHash: string, now: Date): Promise<boolean>;
+  /**
+   * Revoca de forma atómica solo si seguía activo. `false` = ya estaba revocado (carrera/reutilización).
+   * `replaced: true` marca que se revoca por rotación (sustituido por un token nuevo).
+   */
+  revokeIfActive(tokenHash: string, now: Date, options?: { replaced?: boolean }): Promise<boolean>;
   revokeAllForUser(userId: number, now: Date): Promise<void>;
+  /** Revoca los tokens activos del usuario emitidos desde `since`. Devuelve cuántos revocó. */
+  revokeActiveIssuedSince(userId: number, since: Date, now: Date): Promise<number>;
 }
 export const REFRESH_TOKEN_REPOSITORY = Symbol('RefreshTokenRepository');

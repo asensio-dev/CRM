@@ -74,20 +74,44 @@ export class InMemoryUserRepository implements UserRepository {
 }
 
 export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
-  rows = new Map<string, StoredRefreshToken>();
+  rows = new Map<string, StoredRefreshToken & { createdAt: Date }>();
   private seq = 0;
+  /** Reloj de creación de filas (simula el `DEFAULT now()` de la BD). */
+  now: () => Date = () => new Date();
 
   async create(input: { userId: number; tokenHash: string; expiresAt: Date }) {
-    this.rows.set(input.tokenHash, { id: ++this.seq, ...input, revokedAt: null });
+    this.rows.set(input.tokenHash, {
+      id: ++this.seq,
+      ...input,
+      revokedAt: null,
+      replacedAt: null,
+      createdAt: this.now(),
+    });
   }
   async findByHash(tokenHash: string) {
     return this.rows.get(tokenHash) ?? null;
   }
-  async revokeIfActive(tokenHash: string, now: Date) {
+  async revokeIfActive(tokenHash: string, now: Date, options: { replaced?: boolean } = {}) {
     const row = this.rows.get(tokenHash);
     if (!row || row.revokedAt) return false;
     row.revokedAt = now;
+    row.replacedAt = options.replaced ? now : null;
     return true;
+  }
+  async revokeActiveIssuedSince(userId: number, since: Date, now: Date) {
+    let count = 0;
+    for (const row of this.rows.values()) {
+      if (
+        row.userId === userId &&
+        !row.revokedAt &&
+        row.expiresAt > now &&
+        row.createdAt >= since
+      ) {
+        row.revokedAt = now;
+        count++;
+      }
+    }
+    return count;
   }
   async revokeAllForUser(userId: number, now: Date) {
     for (const row of this.rows.values()) {
