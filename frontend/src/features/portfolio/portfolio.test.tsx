@@ -1,0 +1,432 @@
+import { afterEach, describe, expect, test } from 'bun:test';
+import type {
+  AssignmentChangeResultDto,
+  AssignmentDto,
+  CurrentCycleDto,
+  ExecutiveCoverageDto,
+  RunWeeklyResultDto,
+  WeekInfoDto,
+} from '@axiom/contracts';
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { jsonResponse, mockFetch, mountApp, type RecordedCall } from '@/test/helpers';
+
+let mocked: ReturnType<typeof mockFetch> | undefined;
+let noCycle = false;
+afterEach(() => {
+  mocked?.restore();
+  noCycle = false;
+});
+
+const weekInfo: WeekInfoDto = {
+  cycle: {
+    id: 1,
+    number: 4,
+    startDate: '2026-10-19',
+    endDate: '2026-11-08',
+    totalWeeks: 3,
+    closedAt: null,
+  },
+  weekNumber: 2,
+  totalWeeks: 3,
+  weekStart: '2026-10-26',
+  weekEnd: '2026-11-01',
+};
+
+const exec = (
+  userId: number,
+  fullName: string,
+  over: Partial<ExecutiveCoverageDto> = {},
+): ExecutiveCoverageDto => ({
+  userId,
+  fullName,
+  assigned: 60,
+  target: 60,
+  contactedThisCycle: 30,
+  coveragePct: 50,
+  plan: { planId: 90 + userId, items: 20, contacted: 5, quota: 20 },
+  ...over,
+});
+
+const assignment = (id: number, over: Partial<AssignmentDto> = {}): AssignmentDto => ({
+  id,
+  companyId: 100 + id,
+  legalName: `Empresa ${id} S.A.`,
+  tradeName: null,
+  phone: '8888-0000',
+  status: 'CONTACTADO',
+  employeeCount: 1200,
+  lastContactAt: null,
+  userId: 2,
+  userName: 'Ana Ejecutiva',
+  cycleId: 1,
+  assignedAt: '2026-10-19T12:00:00.000Z',
+  cyclesWithoutProgress: 0,
+  ...over,
+});
+
+const executives = [exec(1, 'Ana Pérez'), exec(2, 'Ana Ejecutiva'), exec(3, 'Bruno Ejecutivo')];
+
+let rows: AssignmentDto[];
+
+function baseHandler(extra?: (call: RecordedCall) => Response | undefined) {
+  return (call: RecordedCall) => {
+    const { url } = call;
+    if (url.pathname === '/api/portfolio/cycles/current') {
+      return jsonResponse(
+        noCycle
+          ? { week: null, executives: [] }
+          : ({ week: weekInfo, executives } satisfies CurrentCycleDto),
+      );
+    }
+    if (url.pathname === '/api/portfolio/assignments' && call.method === 'GET') {
+      return jsonResponse({ items: rows, page: 1, pageSize: 20, total: rows.length });
+    }
+    if (url.pathname === '/api/catalogs/sectors')
+      return jsonResponse([{ id: 4, name: 'Comercio' }]);
+    if (url.pathname === '/api/catalogs/activities') {
+      return jsonResponse([{ id: 8, name: 'Venta de repuestos' }]);
+    }
+    return extra?.(call);
+  };
+}
+
+const posts = () => mocked?.calls.filter((c) => c.method === 'POST') ?? [];
+
+describe('Cartera: lectura', () => {
+  test('ciclo, cobertura por ejecutivo y asignaciones con las estancadas resaltadas', async () => {
+    rows = [
+      assignment(1),
+      assignment(2, { cyclesWithoutProgress: 2, status: 'SIN_RESPUESTA' }),
+      assignment(3, { cyclesWithoutProgress: 1 }),
+    ];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+
+    expect(await screen.findByText('Ciclo #4')).toBeTruthy();
+    expect(screen.getByText('Semana 2 de 3')).toBeTruthy();
+    expect(screen.getByText('19 oct – 8 nov')).toBeTruthy();
+
+    const card = screen.getByTestId('exec-3');
+    expect(within(card).getByText('Bruno Ejecutivo')).toBeTruthy();
+    expect(within(card).getByText('30/60 · 50%')).toBeTruthy();
+    expect(within(card).getByText('5/20 · 25%')).toBeTruthy();
+    expect(within(card).getByRole('progressbar', { name: /Cobertura del ciclo/ })).toBeTruthy();
+
+    expect((await screen.findAllByText('Empresa 2 S.A.')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('2 ciclos sin avance').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('1 ciclo sin avance').length).toBeGreaterThan(0);
+    const link = screen.getAllByRole('link', { name: /Empresa 1 S\.A\./ })[0];
+    expect(link?.getAttribute('href')).toBe('/empresas/101');
+  });
+
+  test('ADMIN ve todas las acciones; SUPERVISOR no ve la rotación semanal', async () => {
+    rows = [assignment(1)];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+    await screen.findByText('Ciclo #4');
+    expect(screen.getByRole('button', { name: /Asignación masiva/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Ejecutar rotación semanal/ })).toBeTruthy();
+    expect(
+      screen.getAllByRole('button', { name: 'Liberar Empresa 1 S.A.' }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByRole('checkbox', { name: 'Seleccionar Empresa 1 S.A.' }).length).toBe(2);
+  });
+
+  test('SUPERVISOR: gestiona asignaciones pero no puede ejecutar la rotación', async () => {
+    rows = [assignment(1)];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'SUPERVISOR');
+    await screen.findByText('Ciclo #4');
+    expect(screen.getByRole('button', { name: /Asignación masiva/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Ejecutar rotación semanal/ })).toBeNull();
+    expect(
+      screen.getAllByRole('button', { name: 'Liberar Empresa 1 S.A.' }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test('EJECUTIVO: solo su fila y ninguna acción de administración', async () => {
+    rows = [assignment(1, { userId: 1, userName: 'Ana Pérez' })];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'EJECUTIVO');
+    await screen.findByText('Ciclo #4');
+    expect(screen.getByTestId('exec-1')).toBeTruthy();
+    expect(screen.queryByTestId('exec-2')).toBeNull();
+    expect(screen.queryByTestId('exec-3')).toBeNull();
+    expect(await screen.findAllByText('Empresa 1 S.A.')).not.toHaveLength(0);
+    expect(screen.queryByRole('button', { name: /Asignación masiva/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Ejecutar rotación semanal/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Liberar/ })).toBeNull();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByLabelText('Filtrar por ejecutivo')).toBeNull();
+    const call = mocked.calls.find((c) => c.url.pathname === '/api/portfolio/assignments');
+    expect(call?.url.searchParams.has('userId')).toBe(false);
+  });
+
+  test('filtrar por ejecutivo vuelve a pedir las asignaciones con userId', async () => {
+    rows = [assignment(1)];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+    const select = await screen.findByLabelText('Filtrar por ejecutivo');
+    await waitFor(() => expect(within(select).getAllByRole('option').length).toBe(4));
+    await userEvent.setup().selectOptions(select, '3');
+    await waitFor(() =>
+      expect(
+        mocked?.calls.some(
+          (c) =>
+            c.url.pathname === '/api/portfolio/assignments' &&
+            c.url.searchParams.get('userId') === '3',
+        ),
+      ).toBe(true),
+    );
+  });
+
+  test('sin ciclo activo: ADMIN puede arrancar la rotación; los demás solo ven el aviso', async () => {
+    rows = [];
+    noCycle = true;
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+    expect(await screen.findByText('Aún no hay un ciclo activo')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Ejecutar rotación semanal/ }).length).toBe(2);
+  });
+});
+
+describe('Cartera: reasignar', () => {
+  test('exige elegir destino, envía las empresas seleccionadas y resume el resultado', async () => {
+    rows = [assignment(1), assignment(2), assignment(3)];
+    const result: AssignmentChangeResultDto = {
+      assigned: [101, 102],
+      released: [1, 2],
+      skipped: [103],
+    };
+    mocked = mockFetch(
+      baseHandler(({ url, method }) =>
+        url.pathname === '/api/portfolio/assignments/reassign' && method === 'POST'
+          ? jsonResponse(result)
+          : undefined,
+      ),
+    );
+    await mountApp('/cartera', 'ADMIN');
+    const u = userEvent.setup();
+    await screen.findAllByText('Empresa 1 S.A.');
+
+    expect(screen.queryByRole('button', { name: /Reasignar a/ })).toBeNull();
+    await u.click(
+      screen.getAllByRole('checkbox', { name: 'Seleccionar Empresa 1 S.A.' })[0] as HTMLElement,
+    );
+    await u.click(
+      screen.getAllByRole('checkbox', { name: 'Seleccionar Empresa 2 S.A.' })[0] as HTMLElement,
+    );
+    await u.click(
+      screen.getAllByRole('checkbox', { name: 'Seleccionar Empresa 3 S.A.' })[0] as HTMLElement,
+    );
+    // Se desmarca la 3: solo viajan 101 y 102.
+    await u.click(
+      screen.getAllByRole('checkbox', { name: 'Seleccionar Empresa 3 S.A.' })[0] as HTMLElement,
+    );
+    expect(screen.getByText('2 seleccionadas')).toBeTruthy();
+
+    await u.click(screen.getByRole('button', { name: /Reasignar a/ }));
+    const dialog = await screen.findByRole('dialog');
+    await u.click(within(dialog).getByRole('button', { name: 'Reasignar' }));
+    expect(await within(dialog).findByText('Selecciona el ejecutivo destino.')).toBeTruthy();
+    expect(posts()).toHaveLength(0);
+
+    await u.selectOptions(within(dialog).getByLabelText('Ejecutivo destino'), '3');
+    await u.click(within(dialog).getByRole('button', { name: 'Reasignar' }));
+
+    expect((await within(dialog).findByTestId('result-assigned')).textContent).toBe('2');
+    expect(within(dialog).getByTestId('result-released').textContent).toBe('2');
+    expect(within(dialog).getByTestId('result-skipped').textContent).toBe('1');
+    expect(posts()[0]?.body).toEqual({ companyIds: [101, 102], toUserId: 3 });
+
+    // La lista se refresca y la selección se limpia.
+    const before = mocked.calls.filter(
+      (c) => c.url.pathname === '/api/portfolio/assignments',
+    ).length;
+    await u.click(within(dialog).getByRole('button', { name: 'Listo' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByText('2 seleccionadas')).toBeNull();
+    expect(
+      mocked.calls.filter((c) => c.url.pathname === '/api/portfolio/assignments').length,
+    ).toBeGreaterThanOrEqual(Math.max(before, 2));
+  });
+
+  test('PORTFOLIO_TARGET_NOT_EXECUTIVE se muestra como aviso amable y el diálogo sigue abierto', async () => {
+    rows = [assignment(1)];
+    mocked = mockFetch(
+      baseHandler(({ url, method }) =>
+        url.pathname === '/api/portfolio/assignments/reassign' && method === 'POST'
+          ? jsonResponse(
+              { statusCode: 422, code: 'PORTFOLIO_TARGET_NOT_EXECUTIVE', message: 'x' },
+              422,
+            )
+          : undefined,
+      ),
+    );
+    await mountApp('/cartera', 'SUPERVISOR');
+    const u = userEvent.setup();
+    await screen.findAllByText('Empresa 1 S.A.');
+    await u.click(
+      screen.getAllByRole('checkbox', { name: 'Seleccionar Empresa 1 S.A.' })[0] as HTMLElement,
+    );
+    await u.click(screen.getByRole('button', { name: /Reasignar a/ }));
+    const dialog = await screen.findByRole('dialog');
+    await u.selectOptions(within(dialog).getByLabelText('Ejecutivo destino'), '2');
+    await u.click(within(dialog).getByRole('button', { name: 'Reasignar' }));
+    expect(await screen.findByText(/no es un ejecutivo activo/)).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+});
+
+describe('Cartera: liberar', () => {
+  test('libera con motivo y resume', async () => {
+    rows = [assignment(5)];
+    mocked = mockFetch(
+      baseHandler(({ url, method }) =>
+        url.pathname === '/api/portfolio/assignments/5/release' && method === 'POST'
+          ? jsonResponse({
+              assigned: [],
+              released: [5],
+              skipped: [],
+            } satisfies AssignmentChangeResultDto)
+          : undefined,
+      ),
+    );
+    await mountApp('/cartera', 'ADMIN');
+    const u = userEvent.setup();
+    await u.click(
+      (await screen.findAllByRole('button', { name: 'Liberar Empresa 5 S.A.' }))[0] as HTMLElement,
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/volverá al pool/)).toBeTruthy();
+    await u.selectOptions(within(dialog).getByLabelText('Motivo'), 'SIN_AVANCE');
+    await u.click(within(dialog).getByRole('button', { name: 'Liberar' }));
+    expect((await within(dialog).findByTestId('result-released')).textContent).toBe('1');
+    expect(posts()[0]?.body).toEqual({ reason: 'SIN_AVANCE' });
+  });
+
+  test('PORTFOLIO_ASSIGNMENT_ALREADY_RELEASED: aviso amable, cierra y refresca', async () => {
+    rows = [assignment(5)];
+    mocked = mockFetch(
+      baseHandler(({ url, method }) =>
+        url.pathname === '/api/portfolio/assignments/5/release' && method === 'POST'
+          ? jsonResponse(
+              { statusCode: 422, code: 'PORTFOLIO_ASSIGNMENT_ALREADY_RELEASED', message: 'x' },
+              422,
+            )
+          : undefined,
+      ),
+    );
+    await mountApp('/cartera', 'SUPERVISOR');
+    const u = userEvent.setup();
+    await u.click(
+      (await screen.findAllByRole('button', { name: 'Liberar Empresa 5 S.A.' }))[0] as HTMLElement,
+    );
+    const dialog = await screen.findByRole('dialog');
+    await u.click(within(dialog).getByRole('button', { name: 'Liberar' }));
+    expect(await screen.findByText(/ya había sido liberada/)).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+});
+
+describe('Cartera: asignación masiva y rotación', () => {
+  test('valida, envía filtros + destino + límite y resume', async () => {
+    rows = [assignment(1)];
+    mocked = mockFetch(
+      baseHandler(({ url, method }) =>
+        url.pathname === '/api/portfolio/assignments/bulk' && method === 'POST'
+          ? jsonResponse({
+              assigned: [11, 12, 13],
+              released: [],
+              skipped: [99],
+            } satisfies AssignmentChangeResultDto)
+          : undefined,
+      ),
+    );
+    await mountApp('/cartera', 'SUPERVISOR');
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole('button', { name: /Asignación masiva/ }));
+    const dialog = await screen.findByRole('dialog');
+
+    await u.clear(within(dialog).getByLabelText('Cantidad máxima'));
+    await u.type(within(dialog).getByLabelText('Cantidad máxima'), '900');
+    await u.click(within(dialog).getByRole('button', { name: 'Asignar' }));
+    expect(await within(dialog).findByText('Indica una cantidad entre 1 y 500.')).toBeTruthy();
+    expect(within(dialog).getByText('Selecciona el ejecutivo destino.')).toBeTruthy();
+    expect(posts()).toHaveLength(0);
+
+    await u.selectOptions(within(dialog).getByLabelText('Ejecutivo destino'), '3');
+    await waitFor(() =>
+      expect(within(dialog).getByRole('option', { name: 'Comercio' })).toBeTruthy(),
+    );
+    await u.selectOptions(within(dialog).getByLabelText('Sector (opcional)'), '4');
+    await u.type(within(dialog).getByLabelText('Mínimo de empleados'), '50');
+    await u.clear(within(dialog).getByLabelText('Cantidad máxima'));
+    await u.type(within(dialog).getByLabelText('Cantidad máxima'), '25');
+    await u.click(within(dialog).getByRole('button', { name: 'Asignar' }));
+
+    expect((await within(dialog).findByTestId('result-assigned')).textContent).toBe('3');
+    expect(within(dialog).getByTestId('result-skipped').textContent).toBe('1');
+    expect(posts()[0]?.body).toEqual({
+      toUserId: 3,
+      limit: 25,
+      filters: { sectorId: 4, minEmployees: 50 },
+    });
+  });
+
+  test('PORTFOLIO_NO_ACTIVE_CYCLE en la asignación masiva se explica en español', async () => {
+    rows = [];
+    mocked = mockFetch(
+      baseHandler(({ url, method }) =>
+        url.pathname === '/api/portfolio/assignments/bulk' && method === 'POST'
+          ? jsonResponse({ statusCode: 422, code: 'PORTFOLIO_NO_ACTIVE_CYCLE', message: 'x' }, 422)
+          : undefined,
+      ),
+    );
+    await mountApp('/cartera', 'ADMIN');
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole('button', { name: /Asignación masiva/ }));
+    const dialog = await screen.findByRole('dialog');
+    await u.selectOptions(within(dialog).getByLabelText('Ejecutivo destino'), '2');
+    await u.click(within(dialog).getByRole('button', { name: 'Asignar' }));
+    expect(await screen.findByText(/No hay un ciclo de rotación activo/)).toBeTruthy();
+  });
+
+  test('ADMIN: ejecutar rotación semanal pide confirmación y muestra el resumen', async () => {
+    rows = [assignment(1)];
+    const result: RunWeeklyResultDto = {
+      closedCycle: {
+        number: 3,
+        evaluated: 100,
+        withProgress: 40,
+        withoutProgress: 60,
+        released: 12,
+      },
+      openedCycle: 4,
+      week: weekInfo,
+      refill: { executives: 3, assigned: 36, shortfall: 4 },
+      plans: { generated: 3, existing: 1, items: 61 },
+    };
+    mocked = mockFetch(
+      baseHandler(({ url, method }) =>
+        url.pathname === '/api/portfolio/run-weekly' && method === 'POST'
+          ? jsonResponse(result)
+          : undefined,
+      ),
+    );
+    await mountApp('/cartera', 'ADMIN');
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole('button', { name: /Ejecutar rotación semanal/ }));
+    const dialog = await screen.findByRole('dialog');
+    expect(posts()).toHaveLength(0);
+    await u.click(within(dialog).getByRole('button', { name: 'Ejecutar ahora' }));
+    const summary = await within(dialog).findByTestId('run-weekly-result');
+    expect(summary.textContent).toContain('Ciclo #3 cerrado: 100 evaluadas');
+    expect(summary.textContent).toContain('12 liberadas');
+    expect(summary.textContent).toContain('Ciclo #4 abierto');
+    expect(summary.textContent).toContain('faltaron 4');
+    expect(summary.textContent).toContain('3 generados, 1 ya existían');
+    expect(posts()).toHaveLength(1);
+  });
+});

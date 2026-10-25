@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { render, screen, waitFor } from '@testing-library/react';
 import { useSessionStore } from '@/features/auth/session-store';
+import { jsonResponse, mockFetch } from '@/test/helpers';
 import { createAppRouter, createTestHistory } from './router';
 
 function mount(path: string) {
@@ -20,9 +21,11 @@ function signIn(role: 'ADMIN' | 'EJECUTIVO') {
 }
 
 describe('rutas protegidas', () => {
+  let mocked: ReturnType<typeof mockFetch> | undefined;
   beforeEach(() => {
     useSessionStore.setState({ status: 'anonymous', user: null });
   });
+  afterEach(() => mocked?.restore());
 
   test('sin sesión redirige a /login conservando el destino', async () => {
     const router = await mount('/pipeline');
@@ -33,15 +36,25 @@ describe('rutas protegidas', () => {
 
   test('con sesión muestra la página y la navegación', async () => {
     signIn('EJECUTIVO');
+    mocked = mockFetch(({ url }) => {
+      if (url.pathname === '/api/portfolio/cycles/current') {
+        return jsonResponse({ week: null, executives: [] });
+      }
+      if (url.pathname === '/api/portfolio/assignments') {
+        return jsonResponse({ items: [], page: 1, pageSize: 20, total: 0 });
+      }
+      return undefined;
+    });
     await mount('/cartera');
     expect(await screen.findByRole('heading', { name: 'Cartera' })).toBeTruthy();
-    expect(screen.getByText('Disponible en la Ola 3')).toBeTruthy();
+    expect(await screen.findByText('Aún no hay un ciclo activo')).toBeTruthy();
     expect(screen.queryByText('Usuarios')).toBeNull();
     expect(screen.queryByText('Importación')).toBeNull();
   });
 
   test('ADMIN ve Importación y Usuarios', async () => {
     signIn('ADMIN');
+    mocked = mockFetch(() => undefined);
     await mount('/usuarios');
     expect(await screen.findByRole('heading', { name: 'Usuarios' })).toBeTruthy();
     expect(screen.getAllByText('Importación').length).toBeGreaterThan(0);
@@ -49,12 +62,14 @@ describe('rutas protegidas', () => {
 
   test('un ejecutivo no entra a rutas de ADMIN', async () => {
     signIn('EJECUTIVO');
+    mocked = mockFetch(() => undefined);
     const router = await mount('/usuarios');
     await waitFor(() => expect(router.state.location.pathname).toBe('/mi-semana'));
   });
 
   test('con sesión, /login redirige a la app', async () => {
     signIn('EJECUTIVO');
+    mocked = mockFetch(() => undefined);
     const router = await mount('/login');
     await waitFor(() => expect(router.state.location.pathname).toBe('/mi-semana'));
   });
