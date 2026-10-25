@@ -124,6 +124,7 @@ model Company {
   @@index([legalName])
   @@index([tradeName])
   @@index([sectorId, activityId])
+  @@index([sectorId, status])
   @@index([lastContactAt])
   @@map("companies")
 }
@@ -165,6 +166,7 @@ model Interaction {
 
   @@index([companyId, occurredAt])
   @@index([userId, occurredAt])
+  @@index([userId, companyId, occurredAt])
   @@index([nextFollowUpAt])
   @@map("interactions")
 }
@@ -302,6 +304,7 @@ model Contract {
 
   @@index([companyId])
   @@index([status])
+  @@index([status, endDate])
   @@map("contracts")
 }
 
