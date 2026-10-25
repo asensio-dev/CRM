@@ -111,7 +111,7 @@ test.describe
       await expect(detail.getByRole('link', { name })).toBeVisible();
       await expect(detail).toContainText('2,500.50');
       const code =
-        /CT-\d{4}-\d{6}/.exec(await detail.getByRole('heading').textContent())?.[0] ?? '';
+        /CT-\d{4}-\d{6}/.exec((await detail.getByRole('heading').textContent()) ?? '')?.[0] ?? '';
       await detail.getByRole('button', { name: 'Cerrar' }).first().click();
 
       // y aparece en el listado
