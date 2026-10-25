@@ -45,6 +45,23 @@ export const INTERACTION_OUTCOMES = [
 export const InteractionOutcomeSchema = z.enum(INTERACTION_OUTCOMES);
 export type InteractionOutcome = z.infer<typeof InteractionOutcomeSchema>;
 
+export const INTERACTION_CHANNEL_LABELS: Record<InteractionChannel, string> = {
+  LLAMADA: 'Llamada',
+  WHATSAPP: 'WhatsApp',
+  CORREO: 'Correo',
+  VISITA: 'Visita',
+  OTRO: 'Otro',
+};
+
+export const INTERACTION_OUTCOME_LABELS: Record<InteractionOutcome, string> = {
+  CONTESTO: 'Contestó',
+  NO_CONTESTO: 'No contestó',
+  NUMERO_EQUIVOCADO: 'Número equivocado',
+  INTERESADO: 'Interesado',
+  NO_INTERESADO: 'No interesado',
+  VOLVER_A_LLAMAR: 'Volver a llamar',
+};
+
 // ───────────────────────────── API del módulo pipeline ─────────────────────────────
 /**
  *   GET  /api/pipeline/companies/:id               → PipelineStateDto

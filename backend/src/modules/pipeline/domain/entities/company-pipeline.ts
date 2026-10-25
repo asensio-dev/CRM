@@ -1,4 +1,10 @@
-import type { InteractionChannel, InteractionOutcome, UserRole } from '@axiom/contracts';
+import {
+  INTERACTION_CHANNEL_LABELS,
+  INTERACTION_OUTCOME_LABELS,
+  type InteractionChannel,
+  type InteractionOutcome,
+  type UserRole,
+} from '@axiom/contracts';
 import { AggregateRoot, DomainError } from '../../../../shared/domain';
 import { CompanyStatusChanged, InteractionRegistered } from '../events/pipeline-events';
 import type { OutcomePolicy } from '../services/outcome-policy';
@@ -155,7 +161,7 @@ export class CompanyPipeline extends AggregateRoot {
     );
 
     // 1) pasos automáticos de la política, 2) estado explícito si difiere del resultado.
-    const autoNote = `Automático: ${input.channel} / ${input.outcome}`;
+    const autoNote = `Automático: ${INTERACTION_CHANNEL_LABELS[input.channel]} · ${INTERACTION_OUTCOME_LABELS[input.outcome]}`;
     const plan = policy
       .automaticTransitions(this._status.value, input.outcome)
       .map((to) => ({ to, note: autoNote as string | null }));

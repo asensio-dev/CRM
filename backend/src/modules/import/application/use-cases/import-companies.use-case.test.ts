@@ -188,10 +188,11 @@ describe('ImportCompaniesUseCase', () => {
     expect(jobs.status).toBe('FALLIDO');
   });
 
-  test('archivo sin filas de datos completa con cero filas', async () => {
+  test('archivo sin filas de datos marca el job FALLIDO (no "COMPLETADO con 0 filas")', async () => {
     const { jobs, useCase } = setup([]);
-    const summary = await useCase.execute({ jobId: 1, filePath: 'x.xlsx' });
-    expect(summary.totalRows).toBe(0);
-    expect(jobs.status).toBe('COMPLETADO');
+    await expect(useCase.execute({ jobId: 1, filePath: 'x.xlsx' })).rejects.toThrow(
+      'no tiene filas de datos',
+    );
+    expect(jobs.status).toBe('FALLIDO');
   });
 });

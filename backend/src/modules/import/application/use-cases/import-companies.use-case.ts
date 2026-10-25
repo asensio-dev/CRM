@@ -174,6 +174,10 @@ export class ImportCompaniesUseCase implements UseCase<ImportCompaniesInput, Imp
         }
         if (rejections.length >= IMPORT_BATCH_SIZE) await flushRejections();
       }
+      if (s.totalRows === 0) {
+        // Solo cabecera (o ninguna fila legible): no es un "COMPLETADO con 0 filas", es un error del archivo.
+        throw DomainError.validation('IMPORT_EMPTY_FILE', 'El archivo no tiene filas de datos');
+      }
       if (companies.length > 0) await dispatch({ companies, branches: [] });
       await flushRejections();
       await drain();

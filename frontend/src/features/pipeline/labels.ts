@@ -1,21 +1,12 @@
-import type { InteractionChannel, InteractionOutcome } from '@axiom/contracts';
+import {
+  INTERACTION_CHANNEL_LABELS,
+  INTERACTION_OUTCOME_LABELS,
+  type InteractionOutcome,
+} from '@axiom/contracts';
 
-export const CHANNEL_LABELS: Record<InteractionChannel, string> = {
-  LLAMADA: 'Llamada',
-  WHATSAPP: 'WhatsApp',
-  CORREO: 'Correo',
-  VISITA: 'Visita',
-  OTRO: 'Otro',
-};
-
-export const OUTCOME_LABELS: Record<InteractionOutcome, string> = {
-  CONTESTO: 'Contestó',
-  NO_CONTESTO: 'No contestó',
-  NUMERO_EQUIVOCADO: 'Número equivocado',
-  INTERESADO: 'Interesado',
-  NO_INTERESADO: 'No interesado',
-  VOLVER_A_LLAMAR: 'Volver a llamar',
-};
+// Etiquetas compartidas con el backend (nota automática del historial): viven en @axiom/contracts.
+export const CHANNEL_LABELS = INTERACTION_CHANNEL_LABELS;
+export const OUTCOME_LABELS = INTERACTION_OUTCOME_LABELS;
 
 /** Tono visual del resultado (clases de badge, con modo oscuro). */
 export const OUTCOME_TONES: Record<InteractionOutcome, string> = {

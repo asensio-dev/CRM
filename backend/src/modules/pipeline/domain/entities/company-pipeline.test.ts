@@ -151,8 +151,8 @@ describe('CompanyPipeline.registerInteraction', () => {
     const { history, interactions } = p.pendingChanges();
     expect(interactions).toHaveLength(1);
     expect(history.map((h) => [h.fromStatus, h.toStatus, h.note])).toEqual([
-      ['POR_CONTACTAR', 'CONTACTADO', 'Automático: LLAMADA / NO_CONTESTO'],
-      ['CONTACTADO', 'SIN_RESPUESTA', 'Automático: LLAMADA / NO_CONTESTO'],
+      ['POR_CONTACTAR', 'CONTACTADO', 'Automático: Llamada · No contestó'],
+      ['CONTACTADO', 'SIN_RESPUESTA', 'Automático: Llamada · No contestó'],
     ]);
     const events = p.pullEvents();
     expect(events.map((e) => e.name)).toEqual([
