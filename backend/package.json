@@ -14,6 +14,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
     "db:seed": "prisma db seed",
+    "db:seed:demo": "bun scripts/seed-demo.ts",
     "db:bootstrap": "bun scripts/bootstrap-local-db.ts",
     "db:import": "bun scripts/import-companies.ts",
     "db:seed:activity": "bun scripts/seed-activity.ts",
