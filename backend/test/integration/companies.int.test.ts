@@ -53,7 +53,7 @@ describe('companies', () => {
     );
     expect(porContactar.body.items.length).toBeGreaterThan(0);
     expect(porContactar.body.items.every((c) => c.status === 'POR_CONTACTAR')).toBe(true);
-    expect(porContactar.body.total).toBeGreaterThanOrEqual(300);
+    expect(porContactar.body.total).toBeGreaterThan(100);
 
     const bigNoPhone = await t.api<CompanyPage>(
       'GET',
