@@ -4,7 +4,9 @@ import { Link, useParams } from '@tanstack/react-router';
 import {
   ArrowLeft,
   Building2,
+  CalendarPlus,
   Clock,
+  FileSignature,
   MapPin,
   MessageSquarePlus,
   Pencil,
@@ -14,7 +16,9 @@ import {
   Users,
 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
+import { ScheduleAppointmentDialog } from '@/features/appointments';
 import { AddBranchDialog, EditCompanyDialog } from '@/features/companies';
+import { CreateContractDialog } from '@/features/contracts';
 import { ChangeStatusMenu, RegisterContactDialog, usePipelineState } from '@/features/pipeline';
 import { companyDetailKey, useTimeline } from '@/features/pipeline/api';
 import { api, HttpError } from '@/shared/api';
@@ -91,6 +95,8 @@ export function CompanyDetailPage() {
   const [contactOpen, setContactOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [branchOpen, setBranchOpen] = useState(false);
+  const [appointmentOpen, setAppointmentOpen] = useState(false);
+  const [contractOpen, setContractOpen] = useState(false);
 
   const company = useQuery({
     queryKey: companyDetailKey(companyId),
@@ -153,10 +159,30 @@ export function CompanyDetailPage() {
               <Plus aria-hidden="true" />
               Agregar sucursal
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setAppointmentOpen(true)}>
+              <CalendarPlus aria-hidden="true" />
+              Agendar cita
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setContractOpen(true)}>
+              <FileSignature aria-hidden="true" />
+              Crear contrato
+            </Button>
           </div>
           {/* Los diálogos escriben en companyKeys.detail(id), la misma clave que usa esta ficha */}
           <EditCompanyDialog company={c} open={editOpen} onOpenChange={setEditOpen} />
           <AddBranchDialog companyId={c.id} open={branchOpen} onOpenChange={setBranchOpen} />
+          <ScheduleAppointmentDialog
+            companyId={c.id}
+            companyName={c.legalName}
+            open={appointmentOpen}
+            onOpenChange={setAppointmentOpen}
+          />
+          <CreateContractDialog
+            companyId={c.id}
+            companyName={c.legalName}
+            open={contractOpen}
+            onOpenChange={setContractOpen}
+          />
         </CardContent>
       </Card>
 

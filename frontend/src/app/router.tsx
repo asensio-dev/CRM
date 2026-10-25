@@ -15,6 +15,7 @@ import { redirectIfAuthenticated, requireAuth, requireRole } from '@/features/au
 import { LoginPage } from '@/features/auth/login-page';
 import { CompaniesPage } from '@/features/companies';
 import { CompanyDetailPage } from '@/features/company-detail/company-detail-page';
+import { ContractsPage } from '@/features/contracts';
 import { DashboardPage } from '@/features/dashboard';
 import { ImportPage } from '@/features/import';
 import { MyWeekPage } from '@/features/my-week';
@@ -91,6 +92,7 @@ const PAGE_COMPONENTS: Partial<Record<NavItem['to'], ComponentType>> = {
   '/pipeline': PipelinePage,
   '/tablero': DashboardPage,
   '/citas': AppointmentsPage,
+  '/contratos': ContractsPage,
   '/empresas': CompaniesPage,
   '/importacion': ImportPage,
   '/usuarios': UsersPage,
