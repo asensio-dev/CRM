@@ -1,5 +1,5 @@
 import type { PipelineStateDto } from '@axiom/contracts';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import {
   CLOCK,
   type Clock,
@@ -17,6 +17,12 @@ import {
   type PipelineStatusCode,
 } from '../../domain';
 import { toPipelineStateDto } from '../dtos/pipeline-state.mapper';
+import {
+  AllowAllCompanyAccessPolicy,
+  assertCanOperate,
+  COMPANY_ACCESS_POLICY,
+  type CompanyAccessPolicy,
+} from '../ports/company-access-policy';
 
 export interface ChangeCompanyStatusInput {
   companyId: number;
@@ -36,9 +42,13 @@ export class ChangeCompanyStatusUseCase
     @Inject(UNIT_OF_WORK) private readonly uow: UnitOfWork,
     @Inject(EVENT_BUS) private readonly events: EventBus,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Optional()
+    @Inject(COMPANY_ACCESS_POLICY)
+    private readonly access: CompanyAccessPolicy = new AllowAllCompanyAccessPolicy(),
   ) {}
 
   async execute(input: ChangeCompanyStatusInput): Promise<PipelineStateDto> {
+    await assertCanOperate(this.access, input.actor, input.companyId);
     const pipeline = await this.uow.run(async () => {
       const found = await this.pipelines.findById(input.companyId);
       if (!found) throw companyNotFound(input.companyId);
