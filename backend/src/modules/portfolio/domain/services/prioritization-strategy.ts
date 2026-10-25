@@ -50,7 +50,7 @@ function classify(c: PlanCandidate): Exclude<PlanItemReason, 'SEGUIMIENTO'> {
 }
 
 /**
- * Orden por defecto (ADR 0005):
+ * Orden por defecto (ADR 0006):
  *  1. SEGUIMIENTO: compromisos de la semana (por fecha), siempre entran aunque superen la cuota.
  *  2. Resto, primero las NO contactadas en el ciclo (cobertura) y dentro de cada grupo:
  *     NUEVA (POR_CONTACTAR nunca gestionada; más empleados primero) →

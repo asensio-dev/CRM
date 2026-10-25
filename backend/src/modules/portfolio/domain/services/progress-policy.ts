@@ -2,7 +2,7 @@ import type { PipelineStatus } from '@axiom/contracts';
 
 /**
  * Estados "más allá del bucle de contacto" (POR_CONTACTAR → CONTACTADO ⇄ SIN_RESPUESTA).
- * Llegar a cualquiera de ellos significa que la empresa respondió (ver ADR 0005).
+ * Llegar a cualquiera de ellos significa que la empresa respondió (ver ADR 0006).
  */
 export const ADVANCED_STATUSES: readonly PipelineStatus[] = [
   'CON_RESPUESTA',

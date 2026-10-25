@@ -4,7 +4,7 @@ import type { Actor } from '../../domain';
 /**
  * Puerto: ¿puede `actor` cambiar el estado / registrar interacciones de la empresa?
  * El pipeline no sabe nada de carteras; el módulo `portfolio` aporta la implementación real
- * registrándola bajo `COMPANY_ACCESS_POLICY` en un módulo global (ver ADR 0005).
+ * registrándola bajo `COMPANY_ACCESS_POLICY` en un módulo global (ver ADR 0006).
  * Si nadie la registra, los casos de uso usan `AllowAllCompanyAccessPolicy`.
  */
 export interface CompanyAccessPolicy {

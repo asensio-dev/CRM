@@ -23,7 +23,7 @@ export interface PoolSelectionStrategy {
 export const POOL_SELECTION_STRATEGY = Symbol('PoolSelectionStrategy');
 
 /**
- * Por defecto (ADR 0005):
+ * Por defecto (ADR 0006):
  *  - Orden de candidatos: recicladas (liberadas SIN_AVANCE) primero, luego más empleados, luego id.
  *  - Reparto round-robin (el que más hueco tiene elige primero) para que las mejores empresas
  *    no acaben todas en el mismo ejecutivo.

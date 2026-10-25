@@ -57,7 +57,7 @@ import { WeeklyRotationScheduler } from './infrastructure/scheduling/weekly-rota
  *
  * Es @Global solo para exportar `COMPANY_ACCESS_POLICY`: así el PipelineModule (que no conoce
  * portfolio) recibe la política real sin importar este módulo y sin dependencias circulares
- * (ver ADR 0005). UNIT_OF_WORK, EVENT_BUS y CLOCK llegan del SharedModule global.
+ * (ver ADR 0006). UNIT_OF_WORK, EVENT_BUS y CLOCK llegan del SharedModule global.
  */
 @Global()
 @Module({

@@ -1,4 +1,4 @@
-# ADR 0005 — Cartera rotativa: ciclos, plan semanal, avance y control de acceso
+# ADR 0006 — Cartera rotativa: ciclos, plan semanal, avance y control de acceso
 
 - **Estado:** aceptado (2026-10-25)
 - **Código:** `backend/src/modules/portfolio`, puerto `CompanyAccessPolicy` en `backend/src/modules/pipeline/application/ports`
