@@ -14,7 +14,7 @@ pre-commit:
 commit-msg:
   commands:
     conventional:
-      run: bun scripts/check-commit-msg.ts {1}
+      run: bun scripts/check-commit-msg.ts
 
 pre-push:
   commands:
