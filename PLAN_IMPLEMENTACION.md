@@ -5,7 +5,8 @@
 - **Ola 0 (cimientos): completada.**
 - **Ola 1 (núcleo): completada.** Empresas, importación, identidad, pipeline y shell del frontend.
 - **Ola 2 (rotación y gestión): completada.** Cartera y plan semanal, citas y contratos, analítica, frontend de empresas y kanban.
-- **Ola 3 (experiencia y calidad): en curso.** Mi semana, tablero, pruebas de integración y E2E, revisión de seguridad y documentación (T3.5).
+- **Ola 3 (experiencia y calidad): completada.** Mi semana y Cartera, tablero, citas y contratos, pruebas de integración y E2E, revisión de seguridad (`docs/security-review.md`) y documentación.
+- **Ola 4 (cierre): pendiente.** Prueba de rendimiento en QA con datos reales, release `v1.0.0`.
 
 > Detalle de cada decisión en [docs/adr/](docs/adr/); referencia de la API en [docs/api.md](docs/api.md).
 
@@ -235,7 +236,7 @@ frontend/src/
 > - `createMany({ skipDuplicates })` no existe en SQL Server → la deduplicación se hace antes de insertar (o con `MERGE` en SQL crudo).
 > - `prisma migrate dev` necesita una **base sombra**: el usuario de desarrollo necesita permiso `CREATE DATABASE` o se define `shadowDatabaseUrl`.
 
-Entidades principales (resumen, el esquema exacto lo crea la tarea T0.2):
+Entidades principales (resumen; el esquema real está en `backend/prisma/schema.prisma` y usa `Int IDENTITY` como clave en lugar de UUID, ver ADR 0001):
 
 ```prisma
 model User {
