@@ -1,0 +1,58 @@
+import type { Prisma } from '../../../../generated/prisma/client';
+import type {
+  ActivitySpec,
+  AndSpec,
+  CompanySpecification,
+  CompanySpecificationVisitor,
+  EmployeeRangeSpec,
+  HasPhoneSpec,
+  SectorSpec,
+  StatusInSpec,
+  TextMatchSpec,
+} from '../../domain';
+
+type Where = Prisma.CompanyWhereInput;
+
+/**
+ * Traduce una especificación de dominio a un `where` de Prisma.
+ * La collation de la BD (Modern_Spanish_CI_AS) ya ignora mayúsculas y acentos en `contains`.
+ */
+class PrismaWhereVisitor implements CompanySpecificationVisitor<Where> {
+  visitText({ text }: TextMatchSpec): Where {
+    return {
+      OR: [
+        { ruc: { contains: text } },
+        { legalName: { contains: text } },
+        { tradeName: { contains: text } },
+      ],
+    };
+  }
+
+  visitStatusIn({ statuses }: StatusInSpec): Where {
+    return statuses.length === 1 ? { status: statuses[0] } : { status: { in: [...statuses] } };
+  }
+
+  visitSector({ sectorId }: SectorSpec): Where {
+    return { sectorId };
+  }
+
+  visitActivity({ activityId }: ActivitySpec): Where {
+    return { activityId };
+  }
+
+  visitEmployeeRange({ min, max }: EmployeeRangeSpec): Where {
+    return { employeeCount: { gte: min, lte: max } };
+  }
+
+  visitHasPhone({ expected }: HasPhoneSpec): Where {
+    return expected ? { phone: { not: null } } : { phone: null };
+  }
+
+  visitAnd({ specs }: AndSpec): Where {
+    return specs.length === 0 ? {} : { AND: specs.map((s) => s.accept(this)) };
+  }
+}
+
+export function toPrismaCompanyWhere(spec: CompanySpecification): Where {
+  return spec.accept(new PrismaWhereVisitor());
+}
