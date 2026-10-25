@@ -1,0 +1,342 @@
+// AXIOM CRM — esquema code first.
+// Notas SQL Server:
+//  - Prisma no soporta enum en SQL Server: los estados son NVARCHAR con CHECK (ver migraciones)
+//    y sus valores válidos viven en @axiom/contracts.
+//  - Todas las relaciones usan NoAction (salvo sucursales) para evitar el error de SQL Server
+//    "multiple cascade paths". Los usuarios no se borran: se desactivan.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  runtime      = "bun"
+}
+
+datasource db {
+  provider = "sqlserver"
+}
+
+// ───────────────────────────── Identidad ─────────────────────────────
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique @db.NVarChar(150)
+  fullName     String   @db.NVarChar(150)
+  passwordHash String   @db.NVarChar(255)
+  /// ADMIN | SUPERVISOR | EJECUTIVO
+  role         String   @db.NVarChar(20)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.DateTime2
+  updatedAt    DateTime @updatedAt @db.DateTime2
+
+  refreshTokens   RefreshToken[]
+  assignments     PortfolioAssignment[]
+  weeklyPlans     WeeklyPlan[]
+  interactions    Interaction[]
+  statusChanges   StatusHistory[]
+  appointments    Appointment[]
+  contracts       Contract[]
+  importJobs      ImportJob[]
+  createdCompanies Company[]           @relation("CompanyCreatedBy")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  tokenHash String    @unique @db.NVarChar(255)
+  expiresAt DateTime  @db.DateTime2
+  revokedAt DateTime? @db.DateTime2
+  createdAt DateTime  @default(now()) @db.DateTime2
+
+  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ───────────────────────────── Catálogos ─────────────────────────────
+
+model EconomicSector {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique @db.NVarChar(60)
+  companies Company[]
+
+  @@map("economic_sectors")
+}
+
+model EconomicActivity {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique @db.NVarChar(200)
+  companies Company[]
+
+  @@map("economic_activities")
+}
+
+// ───────────────────────────── Empresas ─────────────────────────────
+
+model Company {
+  id                 Int       @id @default(autoincrement())
+  ruc                String    @unique @db.NVarChar(20)
+  legalName          String    @db.NVarChar(200)
+  tradeName          String?   @db.NVarChar(200)
+  legalRepName       String?   @db.NVarChar(100)
+  legalRepIdNumber   String?   @db.NVarChar(20)
+  employeeCount      Int       @default(0)
+  phone              String?   @db.NVarChar(20)
+  shippingAddress    String?   @db.NVarChar(300)
+  particularAddress  String?   @db.NVarChar(300)
+  activityId         Int?
+  sectorId           Int?
+  /// Estado del pipeline (ver PIPELINE_STATUSES en @axiom/contracts)
+  status             String    @default("POR_CONTACTAR") @db.NVarChar(30)
+  lastContactAt      DateTime? @db.DateTime2
+  /// EXCEL | MANUAL
+  source             String    @default("MANUAL") @db.NVarChar(20)
+  /// Bloqueo optimista: se incrementa en cada cambio de estado
+  version            Int       @default(0)
+  createdById        Int?
+  createdAt          DateTime  @default(now()) @db.DateTime2
+  updatedAt          DateTime  @updatedAt @db.DateTime2
+
+  activity      EconomicActivity? @relation(fields: [activityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sector        EconomicSector?   @relation(fields: [sectorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdBy     User?             @relation("CompanyCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  branches      CompanyBranch[]
+  interactions  Interaction[]
+  statusHistory StatusHistory[]
+  assignments   PortfolioAssignment[]
+  planItems     WeeklyPlanItem[]
+  appointments  Appointment[]
+  contracts     Contract[]
+
+  @@index([status])
+  @@index([legalName])
+  @@index([tradeName])
+  @@index([sectorId, activityId])
+  @@index([lastContactAt])
+  @@map("companies")
+}
+
+/// Filas adicionales del Excel con el mismo RUC (sucursales / nóminas distintas)
+model CompanyBranch {
+  id            Int      @id @default(autoincrement())
+  companyId     Int
+  tradeName     String?  @db.NVarChar(200)
+  address       String?  @db.NVarChar(300)
+  phone         String?  @db.NVarChar(20)
+  employeeCount Int      @default(0)
+  createdAt     DateTime @default(now()) @db.DateTime2
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([companyId])
+  @@map("company_branches")
+}
+
+// ───────────────────────────── Pipeline ─────────────────────────────
+
+model Interaction {
+  id               Int       @id @default(autoincrement())
+  companyId        Int
+  userId           Int
+  planItemId       Int?
+  /// LLAMADA | WHATSAPP | CORREO | VISITA | OTRO
+  channel          String    @db.NVarChar(20)
+  /// CONTESTO | NO_CONTESTO | NUMERO_EQUIVOCADO | INTERESADO | NO_INTERESADO | VOLVER_A_LLAMAR
+  outcome          String    @db.NVarChar(30)
+  notes            String?   @db.NVarChar(2000)
+  occurredAt       DateTime  @default(now()) @db.DateTime2
+  nextFollowUpAt   DateTime? @db.DateTime2
+
+  company  Company         @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user     User            @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  planItem WeeklyPlanItem? @relation(fields: [planItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([companyId, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([nextFollowUpAt])
+  @@map("interactions")
+}
+
+model StatusHistory {
+  id         Int      @id @default(autoincrement())
+  companyId  Int
+  userId     Int
+  fromStatus String?  @db.NVarChar(30)
+  toStatus   String   @db.NVarChar(30)
+  note       String?  @db.NVarChar(1000)
+  changedAt  DateTime @default(now()) @db.DateTime2
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user    User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([companyId, changedAt])
+  @@index([toStatus, changedAt])
+  @@map("status_history")
+}
+
+// ───────────────────────────── Cartera / rotación ─────────────────────────────
+
+model RotationCycle {
+  id        Int       @id @default(autoincrement())
+  number    Int       @unique
+  startDate DateTime  @db.Date
+  endDate   DateTime  @db.Date
+  closedAt  DateTime? @db.DateTime2
+
+  assignments PortfolioAssignment[]
+  weeklyPlans WeeklyPlan[]
+
+  @@map("rotation_cycles")
+}
+
+model PortfolioAssignment {
+  id                    Int       @id @default(autoincrement())
+  companyId             Int
+  userId                Int
+  cycleId               Int
+  assignedAt            DateTime  @default(now()) @db.DateTime2
+  releasedAt            DateTime? @db.DateTime2
+  /// SIN_AVANCE | REASIGNACION_MANUAL | CONTRATO_ACTIVO | DESCARTADO
+  releaseReason         String?   @db.NVarChar(30)
+  cyclesWithoutProgress Int       @default(0)
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user    User          @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cycle   RotationCycle @relation(fields: [cycleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Índice único filtrado "una asignación activa por empresa" creado en SQL en la migración inicial
+  @@index([userId, releasedAt])
+  @@index([companyId])
+  @@map("portfolio_assignments")
+}
+
+model WeeklyPlan {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  cycleId     Int
+  /// Semana dentro del ciclo (1..ROTATION_CYCLE_WEEKS)
+  weekNumber  Int
+  weekStart   DateTime @db.Date
+  quota       Int
+  generatedAt DateTime @default(now()) @db.DateTime2
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cycle RotationCycle    @relation(fields: [cycleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  items WeeklyPlanItem[]
+
+  @@unique([userId, weekStart])
+  @@map("weekly_plans")
+}
+
+model WeeklyPlanItem {
+  id          Int       @id @default(autoincrement())
+  planId      Int
+  companyId   Int
+  priority    Int
+  /// SEGUIMIENTO | NUEVA | REINTENTO | ROTACION
+  reason      String    @db.NVarChar(30)
+  contactedAt DateTime? @db.DateTime2
+
+  plan         WeeklyPlan    @relation(fields: [planId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  interactions Interaction[]
+
+  @@unique([planId, companyId])
+  @@index([companyId])
+  @@map("weekly_plan_items")
+}
+
+// ───────────────────────────── Citas y contratos ─────────────────────────────
+
+model Appointment {
+  id          Int      @id @default(autoincrement())
+  companyId   Int
+  userId      Int
+  scheduledAt DateTime @db.DateTime2
+  /// PRESENCIAL | VIRTUAL | TELEFONICA
+  mode        String   @db.NVarChar(20)
+  location    String?  @db.NVarChar(300)
+  /// PROGRAMADA | REALIZADA | CANCELADA | REPROGRAMADA
+  status      String   @default("PROGRAMADA") @db.NVarChar(20)
+  notes       String?  @db.NVarChar(2000)
+  createdAt   DateTime @default(now()) @db.DateTime2
+  updatedAt   DateTime @updatedAt @db.DateTime2
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user    User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId, scheduledAt])
+  @@index([companyId])
+  @@map("appointments")
+}
+
+model Contract {
+  id          Int       @id @default(autoincrement())
+  companyId   Int
+  code        String    @unique @db.NVarChar(30)
+  startDate   DateTime  @db.Date
+  endDate     DateTime? @db.Date
+  amount      Decimal   @db.Decimal(18, 2)
+  currency    String    @default("NIO") @db.NVarChar(3)
+  /// BORRADOR | ENVIADO | FIRMADO | ACTIVO | CANCELADO | VENCIDO
+  status      String    @default("BORRADOR") @db.NVarChar(20)
+  notes       String?   @db.NVarChar(2000)
+  createdById Int
+  createdAt   DateTime  @default(now()) @db.DateTime2
+  updatedAt   DateTime  @updatedAt @db.DateTime2
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdBy User    @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([companyId])
+  @@index([status])
+  @@map("contracts")
+}
+
+// ───────────────────────────── Configuración e importación ─────────────────────────────
+
+model Setting {
+  key         String   @id @db.NVarChar(60)
+  value       String   @db.NVarChar(500)
+  description String?  @db.NVarChar(300)
+  updatedAt   DateTime @updatedAt @db.DateTime2
+
+  @@map("settings")
+}
+
+model ImportJob {
+  id            Int       @id @default(autoincrement())
+  fileName      String    @db.NVarChar(260)
+  /// PENDIENTE | PROCESANDO | COMPLETADO | FALLIDO
+  status        String    @default("PENDIENTE") @db.NVarChar(20)
+  totalRows     Int       @default(0)
+  insertedCount Int       @default(0)
+  updatedCount  Int       @default(0)
+  branchCount   Int       @default(0)
+  rejectedCount Int       @default(0)
+  errorMessage  String?   @db.NVarChar(2000)
+  createdById   Int?
+  startedAt     DateTime  @default(now()) @db.DateTime2
+  finishedAt    DateTime? @db.DateTime2
+
+  createdBy  User?             @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rejections ImportRejection[]
+
+  @@map("import_jobs")
+}
+
+model ImportRejection {
+  id        Int    @id @default(autoincrement())
+  jobId     Int
+  rowNumber Int
+  reason    String @db.NVarChar(300)
+  rawData   String @db.NVarChar(Max)
+
+  job ImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([jobId])
+  @@map("import_rejections")
+}

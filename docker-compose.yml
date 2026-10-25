@@ -1,0 +1,19 @@
+# SQL Server para quien no lo tenga instalado localmente.
+# La contraseña se toma de la variable de entorno MSSQL_SA_PASSWORD del sistema; nunca se escribe aquí.
+#   PowerShell: $env:MSSQL_SA_PASSWORD = '<contraseña fuerte>'; docker compose up -d
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: axiom-mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_COLLATION: Modern_Spanish_CI_AS
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Define MSSQL_SA_PASSWORD en tu entorno}
+    ports:
+      - "1433:1433"
+    volumes:
+      - axiom-mssql-data:/var/opt/mssql
+
+volumes:
+  axiom-mssql-data:

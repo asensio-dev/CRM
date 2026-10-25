@@ -1,0 +1,41 @@
+{
+  "name": "@axiom/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "bun test src",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:create": "prisma migrate dev --create-only",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "db:seed": "prisma db seed",
+    "db:bootstrap": "bun scripts/bootstrap-local-db.ts",
+    "postinstall": "prisma generate",
+    "arch": "depcruise src --config .dependency-cruiser.cjs"
+  },
+  "dependencies": {
+    "@axiom/contracts": "workspace:*",
+    "@nestjs/common": "^12.1.3",
+    "@nestjs/core": "^12.1.3",
+    "@nestjs/event-emitter": "^12.0.1",
+    "@nestjs/platform-express": "^12.1.3",
+    "@prisma/adapter-mssql": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^12.1.3",
+    "@types/bun": "^1.4.4",
+    "@types/express": "^5.0.3",
+    "prisma": "^7.10.1",
+    "dependency-cruiser": "^18.7.0",
+    "typescript": "^6.0.3"
+  }
+}

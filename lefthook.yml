@@ -1,0 +1,22 @@
+# Hooks de git. Se instalan solos con `bun install` (script "prepare").
+pre-commit:
+  parallel: true
+  commands:
+    secrets:
+      run: bunx secretlint {staged_files}
+    staged-guard:
+      # Bloquea .env, Excel, data/ y contraseñas en cadenas de conexión
+      run: bun scripts/check-staged-secrets.ts
+    lint:
+      glob: "*.{ts,tsx,js,json}"
+      run: bunx biome check --no-errors-on-unmatched {staged_files}
+
+commit-msg:
+  commands:
+    conventional:
+      run: bun scripts/check-commit-msg.ts {1}
+
+pre-push:
+  commands:
+    verify:
+      run: bun run typecheck && bun run arch && bun run test

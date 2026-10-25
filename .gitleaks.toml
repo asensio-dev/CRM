@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "sqlserver-connection-password"
+description = "Contraseña en cadena de conexión SQL Server"
+regex = '''(?i)sqlserver://[^\s"']*;\s*(password|pwd)\s*=\s*[^;\s"'$<{]{6,}'''
+keywords = ["sqlserver://"]
