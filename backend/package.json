@@ -15,6 +15,7 @@
     "db:status": "prisma migrate status",
     "db:seed": "prisma db seed",
     "db:bootstrap": "bun scripts/bootstrap-local-db.ts",
+    "db:import": "bun scripts/import-companies.ts",
     "postinstall": "prisma generate",
     "arch": "depcruise src --config .dependency-cruiser.cjs"
   },
@@ -30,6 +31,7 @@
     "cookie-parser": "^1.4.7",
     "helmet": "^8.3.0",
     "jose": "^6.2.13",
+    "exceljs": "^4.4.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "^4.6.7"
