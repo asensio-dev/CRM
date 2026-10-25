@@ -19,6 +19,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { companyKeys } from '@/features/companies/queries';
 import { api } from '@/shared/api';
 import { isConcurrencyError, pipelineErrorMessage } from './errors';
 
@@ -44,8 +45,11 @@ export const catalogKeys = {
   activities: ['catalogs', 'activities'] as const,
 };
 
-/** Clave del detalle de empresa (la comparte la ficha y la invalidan los cambios de estado). */
-export const companyDetailKey = (companyId: number) => ['companies', 'detail', companyId] as const;
+/**
+ * Clave del detalle de empresa (la comparte la ficha y la invalidan los cambios de estado).
+ * Única fuente: `companyKeys.detail` de la feature companies, que usan sus diálogos de edición.
+ */
+export const companyDetailKey = (companyId: number) => companyKeys.detail(companyId);
 
 // ───────────────────────────── lecturas ─────────────────────────────
 

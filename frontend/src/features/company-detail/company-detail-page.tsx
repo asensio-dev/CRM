@@ -7,11 +7,14 @@ import {
   Clock,
   MapPin,
   MessageSquarePlus,
+  Pencil,
   Phone,
+  Plus,
   Store,
   Users,
 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
+import { AddBranchDialog, EditCompanyDialog } from '@/features/companies';
 import { ChangeStatusMenu, RegisterContactDialog, usePipelineState } from '@/features/pipeline';
 import { companyDetailKey, useTimeline } from '@/features/pipeline/api';
 import { api, HttpError } from '@/shared/api';
@@ -86,6 +89,8 @@ export function CompanyDetailPage() {
   const params = useParams({ strict: false }) as { companyId?: number | string };
   const companyId = Number(params.companyId);
   const [contactOpen, setContactOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [branchOpen, setBranchOpen] = useState(false);
 
   const company = useQuery({
     queryKey: companyDetailKey(companyId),
@@ -139,9 +144,19 @@ export function CompanyDetailPage() {
             {c.tradeName && <p className="text-muted-foreground">{c.tradeName}</p>}
             <p className="text-sm text-muted-foreground">RUC {c.ruc}</p>
           </div>
-          {/* SLOT-T2.4: el orquestador montará aquí <EditCompanyDialog /> y <AddBranchDialog />
-              (botones "Editar empresa" / "Agregar sucursal", construidos en features/companies). */}
-          <div data-slot="company-actions" className="flex flex-wrap items-center gap-2" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil aria-hidden="true" />
+              Editar empresa
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setBranchOpen(true)}>
+              <Plus aria-hidden="true" />
+              Agregar sucursal
+            </Button>
+          </div>
+          {/* Los diálogos escriben en companyKeys.detail(id), la misma clave que usa esta ficha */}
+          <EditCompanyDialog company={c} open={editOpen} onOpenChange={setEditOpen} />
+          <AddBranchDialog companyId={c.id} open={branchOpen} onOpenChange={setBranchOpen} />
         </CardContent>
       </Card>
 
