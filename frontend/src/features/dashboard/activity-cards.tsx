@@ -57,28 +57,31 @@ function hasActivity(data: WeeklyActivityDto | undefined): boolean {
 /** Tabla accesible equivalente al gráfico (solo lectores de pantalla). */
 function SrTable({ caption, head, rows }: { caption: string; head: string[]; rows: string[][] }) {
   return (
-    <table className="sr-only">
-      <caption>{caption}</caption>
-      <thead>
-        <tr>
-          {head.map((h) => (
-            <th key={h} scope="col">
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r[0]}>
-            {r.map((c, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: celdas posicionales.
-              <td key={i}>{c}</td>
+    // El contenedor sr-only (1px + overflow oculto) recorta la tabla: así no ensancha el scroll.
+    <div className="sr-only">
+      <table>
+        <caption>{caption}</caption>
+        <thead>
+          <tr>
+            {head.map((h) => (
+              <th key={h} scope="col">
+                {h}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r[0]}>
+              {r.map((c, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: celdas posicionales.
+                <td key={i}>{c}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

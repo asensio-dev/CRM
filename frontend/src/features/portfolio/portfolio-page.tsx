@@ -75,7 +75,7 @@ function AssignmentCard({
   onRelease: () => void;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <div className="flex items-start gap-3">
         {canManage && (
           <Checkbox

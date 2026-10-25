@@ -38,7 +38,7 @@ export function PlanItemRow({
       data-contacted={contacted}
       data-reason={item.reason}
       className={cn(
-        'rounded-lg border bg-card p-3 shadow-sm sm:p-4',
+        'min-w-0 rounded-lg border bg-card p-3 shadow-sm sm:p-4',
         contacted &&
           'border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/30 dark:bg-emerald-500/5',
       )}

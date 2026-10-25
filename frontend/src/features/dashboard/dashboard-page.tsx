@@ -188,7 +188,7 @@ export function DashboardPage() {
           <KpiTiles summary={summary.data} weeks={weekly.data?.weeks} />
         )}
 
-        <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid gap-6 xl:grid-cols-2 [&>*]:min-w-0">
           {funnel.isPending ? (
             <CardSkeleton label="Cargando embudo" />
           ) : funnel.isError ? (
@@ -225,7 +225,7 @@ export function DashboardPage() {
           </label>
         )}
         {weekly.isPending ? (
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid gap-6 xl:grid-cols-2 [&>*]:min-w-0">
             <CardSkeleton label="Cargando actividad semanal" />
             <CardSkeleton label="Cargando resultados" />
           </div>
@@ -236,7 +236,7 @@ export function DashboardPage() {
             title="No se pudo cargar la actividad"
           />
         ) : (
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid gap-6 xl:grid-cols-2 [&>*]:min-w-0">
             <WeeklyActivityCard data={weekly.data} byExecutive={byExecutive && canPickExecutive} />
             <OutcomesCard data={weekly.data} />
           </div>
