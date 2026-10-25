@@ -1,0 +1,149 @@
+import type {
+  CompanyDetail,
+  CompanyListItem,
+  CompanySortField,
+  Paginated,
+  PipelineStatus,
+  SortDirection,
+} from '@axiom/contracts';
+import { Injectable } from '@nestjs/common';
+import type { Prisma } from '../../../../generated/prisma/client';
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import type { CompanyReader, CompanySearchCriteria } from '../../domain';
+import { toPrismaCompanyWhere } from './prisma-company-where';
+
+/** Solo las columnas del listado (sin cédula ni direcciones): rápido sobre 127 k filas. */
+const LIST_SELECT = {
+  id: true,
+  ruc: true,
+  legalName: true,
+  tradeName: true,
+  employeeCount: true,
+  phone: true,
+  status: true,
+  sectorId: true,
+  activityId: true,
+  lastContactAt: true,
+  createdAt: true,
+  sector: { select: { name: true } },
+  activity: { select: { name: true } },
+} satisfies Prisma.CompanySelect;
+
+type ListRow = Prisma.CompanyGetPayload<{ select: typeof LIST_SELECT }>;
+
+const iso = (d: Date | null): string | null => (d ? d.toISOString() : null);
+
+function toListItem(row: ListRow): CompanyListItem {
+  return {
+    id: row.id,
+    ruc: row.ruc,
+    legalName: row.legalName,
+    tradeName: row.tradeName,
+    employeeCount: row.employeeCount,
+    phone: row.phone,
+    status: row.status as PipelineStatus,
+    sectorId: row.sectorId,
+    sectorName: row.sector?.name ?? null,
+    activityId: row.activityId,
+    activityName: row.activity?.name ?? null,
+    lastContactAt: iso(row.lastContactAt),
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function orderBy(
+  sortBy: CompanySortField,
+  sortDir: SortDirection,
+): Prisma.CompanyOrderByWithRelationInput[] {
+  // `id` como desempate: la paginación por offset necesita un orden total estable.
+  return [{ [sortBy]: sortDir }, { id: 'asc' }];
+}
+
+@Injectable()
+export class PrismaCompanyReader implements CompanyReader {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async search(criteria: CompanySearchCriteria): Promise<Paginated<CompanyListItem>> {
+    const where = toPrismaCompanyWhere(criteria.spec);
+    const db = this.prisma.db;
+    const [total, rows] = await Promise.all([
+      db.company.count({ where }),
+      db.company.findMany({
+        where,
+        select: LIST_SELECT,
+        orderBy: orderBy(criteria.sortBy, criteria.sortDir),
+        skip: (criteria.page - 1) * criteria.pageSize,
+        take: criteria.pageSize,
+      }),
+    ]);
+    return {
+      items: rows.map(toListItem),
+      page: criteria.page,
+      pageSize: criteria.pageSize,
+      total,
+    };
+  }
+
+  async getDetail(id: number): Promise<CompanyDetail | null> {
+    const row = await this.prisma.db.company.findUnique({
+      where: { id },
+      select: {
+        ...LIST_SELECT,
+        legalRepName: true,
+        legalRepIdNumber: true,
+        shippingAddress: true,
+        particularAddress: true,
+        source: true,
+        version: true,
+        updatedAt: true,
+        branches: { orderBy: { id: 'asc' } },
+      },
+    });
+    if (!row) return null;
+    return {
+      ...toListItem(row),
+      legalRepName: row.legalRepName,
+      legalRepIdNumber: row.legalRepIdNumber,
+      shippingAddress: row.shippingAddress,
+      particularAddress: row.particularAddress,
+      source: row.source as 'EXCEL' | 'MANUAL',
+      version: row.version,
+      updatedAt: row.updatedAt.toISOString(),
+      branches: row.branches.map((b) => ({
+        id: b.id,
+        tradeName: b.tradeName,
+        address: b.address,
+        phone: b.phone,
+        employeeCount: b.employeeCount,
+        createdAt: b.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  async existsByRuc(ruc: string): Promise<boolean> {
+    const found = await this.prisma.db.company.findUnique({ where: { ruc }, select: { id: true } });
+    return found !== null;
+  }
+
+  async findMissingCatalogRef(refs: {
+    sectorId?: number | null;
+    activityId?: number | null;
+  }): Promise<'sector' | 'activity' | null> {
+    const db = this.prisma.db;
+    if (refs.sectorId != null) {
+      const sector = await db.economicSector.findUnique({
+        where: { id: refs.sectorId },
+        select: { id: true },
+      });
+      if (!sector) return 'sector';
+    }
+    if (refs.activityId != null) {
+      const activity = await db.economicActivity.findUnique({
+        where: { id: refs.activityId },
+        select: { id: true },
+      });
+      if (!activity) return 'activity';
+    }
+    return null;
+  }
+}
