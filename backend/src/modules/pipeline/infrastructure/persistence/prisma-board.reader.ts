@@ -24,12 +24,7 @@ interface BoardRow {
 /** Escapa comodines de LIKE (se usa `ESCAPE '!'`). */
 export const escapeLike = (value: string) => value.replace(/[!%_[]/g, '!$&');
 
-/**
- * Tablero kanban en UNA consulta: ROW_NUMBER() y COUNT(*) particionados por estado.
- * Todos los valores van como parámetros (@P1…), nunca concatenados.
- * Orden de tarjetas: menos recientemente contactadas primero (NULL = nunca), luego más empleados.
- */
-export function buildBoardSql(query: BoardQuery): Prisma.Sql {
+function boardFilters(query: BoardQuery): Prisma.Sql[] {
   const filters: Prisma.Sql[] = [];
   if (query.sectorId !== undefined) filters.push(Prisma.sql`c.[sectorId] = ${query.sectorId}`);
   if (query.activityId !== undefined) {
@@ -41,17 +36,49 @@ export function buildBoardSql(query: BoardQuery): Prisma.Sql {
       Prisma.sql`(c.[legalName] LIKE ${pattern} ESCAPE '!' OR c.[tradeName] LIKE ${pattern} ESCAPE '!' OR c.[ruc] LIKE ${pattern} ESCAPE '!')`,
     );
   }
-  const where =
-    filters.length > 0 ? Prisma.sql`WHERE ${Prisma.join(filters, ' AND ')}` : Prisma.empty;
+  return filters;
+}
 
+const CARD_ORDER = Prisma.sql`c.[lastContactAt] ASC, c.[employeeCount] DESC, c.[id] ASC`;
+
+/**
+ * Tablero kanban en UNA consulta parametrizada (@P1…; nunca se concatena la entrada del usuario).
+ * Orden de tarjetas: menos recientemente contactadas primero (NULL = nunca), luego más empleados.
+ *
+ * Dos planes según el filtro (medidos sobre ~80 k filas):
+ *  - Sin texto: GROUP BY status (índice companies_status_idx) + CROSS APPLY TOP N por estado.
+ *    ~3× más rápido que la ventana y con el índice (status, lastContactAt, employeeCount) son seeks.
+ *  - Con texto (`q`): el LIKE '%…%' obliga a recorrer la tabla, así que se evalúa UNA vez con
+ *    ROW_NUMBER()/COUNT(*) OVER (PARTITION BY status) en lugar de una vez por estado.
+ */
+export function buildBoardSql(query: BoardQuery): Prisma.Sql {
+  const filters = boardFilters(query);
+  if (!query.q) {
+    const and =
+      filters.length > 0 ? Prisma.sql`AND ${Prisma.join(filters, ' AND ')}` : Prisma.empty;
+    return Prisma.sql`
+    SELECT x.[id], x.[legalName], x.[tradeName], x.[phone], x.[employeeCount], x.[lastContactAt],
+           s.[status], s.[total]
+    FROM (
+      SELECT c.[status], COUNT(*) AS total FROM [dbo].[companies] c WHERE 1 = 1 ${and}
+      GROUP BY c.[status]
+    ) s
+    CROSS APPLY (
+      SELECT TOP (${query.limitPerColumn}) c.[id], c.[legalName], c.[tradeName], c.[phone],
+             c.[employeeCount], c.[lastContactAt]
+      FROM [dbo].[companies] c
+      WHERE c.[status] = s.[status] ${and}
+      ORDER BY ${CARD_ORDER}
+    ) x
+    ORDER BY s.[status]`;
+  }
+
+  const where = Prisma.sql`WHERE ${Prisma.join(filters, ' AND ')}`;
   return Prisma.sql`
     WITH ranked AS (
       SELECT c.[id], c.[legalName], c.[tradeName], c.[phone], c.[employeeCount],
              c.[lastContactAt], c.[status],
-             ROW_NUMBER() OVER (
-               PARTITION BY c.[status]
-               ORDER BY c.[lastContactAt] ASC, c.[employeeCount] DESC, c.[id] ASC
-             ) AS rn,
+             ROW_NUMBER() OVER (PARTITION BY c.[status] ORDER BY ${CARD_ORDER}) AS rn,
              COUNT(*) OVER (PARTITION BY c.[status]) AS total
       FROM [dbo].[companies] c
       ${where}

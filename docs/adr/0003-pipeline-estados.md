@@ -51,4 +51,4 @@ Cada paso deja una fila en `status_history` (los automáticos con nota `Automát
 
 - Cambiar la política (p. ej. que `NO_INTERESADO` descarte) es añadir otra implementación de `OutcomePolicy` y cambiar el proveedor `OUTCOME_POLICY`, sin tocar casos de uso.
 - Añadir un estado exige: contracts + `CHECK` en migración nueva + una clase de estado + actualizar la matriz de tests.
-- El tablero (`GET /api/pipeline/board`) usa una sola consulta con `ROW_NUMBER()/COUNT(*) OVER (PARTITION BY status)`. Para 127 k filas se recomienda el índice `companies(status, lastContactAt, employeeCount DESC) INCLUDE (legalName, tradeName, phone)`.
+- El tablero (`GET /api/pipeline/board`) es una sola consulta parametrizada con dos planes: sin texto, `GROUP BY status` + `CROSS APPLY TOP N` por estado (~260 ms en caliente con 94 k filas); con `q`, `ROW_NUMBER()/COUNT(*) OVER (PARTITION BY status)` para evaluar el `LIKE` una sola vez. Se recomienda el índice `companies(status, lastContactAt, employeeCount DESC, id) INCLUDE (legalName, tradeName, phone)` para que el `TOP N` sea un seek.

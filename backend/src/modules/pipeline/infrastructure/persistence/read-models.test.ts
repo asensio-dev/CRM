@@ -4,18 +4,26 @@ import { buildBoardSql, escapeLike, toBoard } from './prisma-board.reader';
 import { compareTimeline } from './prisma-timeline.reader';
 
 describe('board SQL', () => {
-  test('no filters → only the limit is a parameter', () => {
+  test('no text search → GROUP BY + CROSS APPLY TOP N, only the limit is a parameter', () => {
     const sql = buildBoardSql({ limitPerColumn: 20 });
     expect(sql.values).toEqual([20]);
-    expect(sql.sql).toContain('ROW_NUMBER() OVER');
-    expect(sql.sql).toContain('PARTITION BY c.[status]');
-    expect(sql.sql).not.toContain('WHERE c.');
+    expect(sql.sql).toContain('GROUP BY c.[status]');
+    expect(sql.sql).toContain('CROSS APPLY');
+    expect(sql.sql).toContain('TOP (?)');
+    expect(sql.sql).not.toContain('ROW_NUMBER');
   });
 
-  test('filters are parameterised, never concatenated', () => {
+  test('catalog filters apply to both the count and the cards', () => {
+    const sql = buildBoardSql({ limitPerColumn: 5, sectorId: 3, activityId: 8 });
+    expect(sql.values).toEqual([3, 8, 5, 3, 8]);
+  });
+
+  test('text search → single window query; values parameterised, never concatenated', () => {
     const q = "x'; DROP TABLE companies; --";
     const sql = buildBoardSql({ limitPerColumn: 5, sectorId: 3, activityId: 8, q });
     expect(sql.values).toEqual([3, 8, `%${q}%`, `%${q}%`, `%${q}%`, 5]);
+    expect(sql.sql).toContain('ROW_NUMBER() OVER (PARTITION BY c.[status]');
+    expect(sql.sql).toContain('COUNT(*) OVER (PARTITION BY c.[status])');
     expect(sql.sql).not.toContain('DROP TABLE');
     expect(sql.sql).toContain("ESCAPE '!'");
   });
