@@ -12,6 +12,7 @@ import type { ComponentType } from 'react';
 import { z } from 'zod';
 import { redirectIfAuthenticated, requireAuth, requireRole } from '@/features/auth/guards';
 import { LoginPage } from '@/features/auth/login-page';
+import { CompaniesPage } from '@/features/companies';
 import { CompanyDetailPage } from '@/features/company-detail/company-detail-page';
 import { PipelinePage } from '@/features/pipeline';
 import { Button } from '@/shared/ui/button';
@@ -79,8 +80,8 @@ const PAGES: Record<NavItem['to'], { description: string; wave: 2 | 3 }> = {
  * las que faltan muestran el placeholder de su ola.
  */
 const PAGE_COMPONENTS: Partial<Record<NavItem['to'], ComponentType>> = {
-  // '/empresas': CompaniesPage,
   '/pipeline': PipelinePage,
+  '/empresas': CompaniesPage,
 };
 
 const pageRoutes = NAV_ITEMS.map((item) => {
