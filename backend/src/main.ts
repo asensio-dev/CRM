@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -17,6 +18,24 @@ async function bootstrap() {
   app.enableCors({ origin: config.CORS_ORIGIN, credentials: true });
   app.useGlobalFilters(new DomainExceptionFilter());
   app.enableShutdownHooks();
+
+  // Swagger UI solo fuera de producción: en /api/docs (JSON en /api/docs-json).
+  // Es una ruta de Express fuera de los controladores Nest, así que el guard JWT global no la afecta.
+  if (process.env.NODE_ENV !== 'production') {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder()
+        .setTitle('AXIOM CRM API')
+        .setDescription(
+          'API del CRM de cartera rotativa. Autenticación: access token en `Authorization: Bearer`; el refresh token viaja en cookie httpOnly.',
+        )
+        .setVersion('0.1.0')
+        .addBearerAuth()
+        .build(),
+    );
+    // El prefijo global 'api' no se aplica a Swagger: la ruta explícita es /api/docs.
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   await app.listen(config.PORT);
   Logger.log(`API en http://localhost:${config.PORT}/api (Bun ${Bun.version})`, 'Bootstrap');

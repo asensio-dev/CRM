@@ -17,6 +17,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
@@ -35,6 +36,7 @@ import { TOKEN_ISSUER, type TokenIssuer } from '../../domain';
 export const REFRESH_COOKIE = 'refresh_token';
 const COOKIE_PATH = '/api/auth';
 
+@ApiTags('Autenticación')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -85,6 +87,7 @@ export class AuthController {
     this.clearCookie(res);
   }
 
+  @ApiBearerAuth()
   @Get('me')
   me(@CurrentUser() user: AuthenticatedUser): Promise<AuthUser> {
     return this.getMe.execute({ userId: user.id });

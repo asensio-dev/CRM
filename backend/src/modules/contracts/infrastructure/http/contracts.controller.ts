@@ -23,6 +23,7 @@ import {
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   type AuthenticatedUser,
   CurrentUser,
@@ -43,6 +44,8 @@ function actorOf(user: AuthenticatedUser | undefined): ContractActor {
 }
 
 /** EJECUTIVO: sus contratos; SUPERVISOR y ADMIN: todos (la regla vive en los casos de uso). */
+@ApiTags('Contratos')
+@ApiBearerAuth()
 @Controller('contracts')
 export class ContractsController {
   constructor(

@@ -23,6 +23,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   type AuthenticatedUser,
   CurrentUser,
@@ -46,6 +47,8 @@ interface UploadedXlsx {
 }
 
 @Roles('ADMIN')
+@ApiTags('Importación')
+@ApiBearerAuth()
 @Controller('import')
 export class ImportController {
   private readonly logger = new Logger(ImportController.name);

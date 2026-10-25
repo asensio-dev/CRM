@@ -1,9 +1,12 @@
 import { type CatalogItem, type CatalogQuery, CatalogQuerySchema } from '@axiom/contracts';
 import { Controller, Get, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ZodValidationPipe } from '../../../../shared/infrastructure/http/zod-validation.pipe';
 import { ListActivitiesUseCase } from '../../application/use-cases/list-activities.use-case';
 import { ListSectorsUseCase } from '../../application/use-cases/list-sectors.use-case';
 
+@ApiTags('Catálogos')
+@ApiBearerAuth()
 @Controller('catalogs')
 export class CatalogsController {
   constructor(

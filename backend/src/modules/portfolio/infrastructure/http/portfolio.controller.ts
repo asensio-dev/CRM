@@ -28,6 +28,7 @@ import {
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   type AuthenticatedUser,
   CurrentUser,
@@ -53,6 +54,8 @@ function actorOf(user: AuthenticatedUser | undefined) {
 }
 
 /** Los roles se comprueban con @Roles (guard global) y otra vez en los casos de uso. */
+@ApiTags('Cartera')
+@ApiBearerAuth()
 @Controller('portfolio')
 export class PortfolioController {
   constructor(
