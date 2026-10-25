@@ -4,6 +4,7 @@
   "type": "module",
   "workspaces": [
     "backend",
+    "frontend",
     "packages/*"
   ],
   "scripts": {
