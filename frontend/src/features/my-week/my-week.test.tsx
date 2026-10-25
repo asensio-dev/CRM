@@ -214,6 +214,40 @@ describe('Mi semana', () => {
     expect(mocked.calls.filter((c) => c.method === 'POST')).toHaveLength(1);
   });
 
+  test('el resumen de la rotación sigue visible aunque el estado vacío desaparezca al refrescar', async () => {
+    const result: RunWeeklyResultDto = {
+      closedCycle: null,
+      openedCycle: 1,
+      week: weekInfo,
+      refill: { executives: 3, assigned: 180, shortfall: 0 },
+      plans: { generated: 3, existing: 0, items: 60 },
+    };
+    let ran = false;
+    mocked = mockFetch(({ url, method }) => {
+      if (url.pathname === '/api/portfolio/my-week') {
+        // Tras la rotación ya hay ciclo y plan: el estado vacío (con el botón) se desmonta.
+        return jsonResponse(ran ? weekDto([]) : weekDto([], { week: null, planId: null }));
+      }
+      if (url.pathname === '/api/portfolio/cycles/current') {
+        return jsonResponse({ week: null, executives: [] } satisfies CurrentCycleDto);
+      }
+      if (url.pathname === '/api/portfolio/run-weekly' && method === 'POST') {
+        ran = true;
+        return jsonResponse(result);
+      }
+      return undefined;
+    });
+    await mountApp('/mi-semana', 'ADMIN');
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole('button', { name: /Ejecutar rotación semanal/ }));
+    await u.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Ejecutar ahora' }),
+    );
+    await waitFor(() => expect(screen.queryByText('Aún no hay un ciclo activo')).toBeNull());
+    const summary = await screen.findByTestId('run-weekly-result');
+    expect(summary.textContent).toContain('Ciclo #1 abierto');
+  });
+
   test('plan aún no generado', async () => {
     mocked = mockFetch(({ url }) =>
       url.pathname === '/api/portfolio/my-week'

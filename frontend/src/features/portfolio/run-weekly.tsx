@@ -37,22 +37,23 @@ export function RunWeeklySummary({ result }: { result: RunWeeklyResultDto }) {
   );
 }
 
-/** Botón ADMIN "Ejecutar rotación semanal" con confirmación y resumen del resultado. */
-export function RunWeeklyButton({
-  variant = 'outline',
-  size,
-  label = 'Ejecutar rotación semanal',
+/**
+ * Diálogo controlado de "Ejecutar rotación semanal" (confirmación + resumen del resultado).
+ * Móntalo en un sitio ESTABLE de la página: si vive dentro de un estado vacío que desaparece al
+ * refrescarse los datos tras la rotación, el resumen y el toast se pierden.
+ */
+export function RunWeeklyDialog({
+  open,
+  onOpenChange,
 }: {
-  variant?: ButtonProps['variant'];
-  size?: ButtonProps['size'];
-  label?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [result, setResult] = useState<RunWeeklyResultDto | null>(null);
   const mutation = useRunWeekly();
 
-  const onOpenChange = (o: boolean) => {
-    setOpen(o);
+  const change = (o: boolean) => {
+    onOpenChange(o);
     if (!o) setResult(null);
   };
 
@@ -67,51 +68,70 @@ export function RunWeeklyButton({
     });
 
   return (
+    <Dialog open={open} onOpenChange={change}>
+      <DialogContent>
+        {result ? (
+          <div className="grid gap-4">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
+                Rotación ejecutada
+              </DialogTitle>
+              <DialogDescription>
+                Semana {result.week.weekNumber} de {result.week.totalWeeks} · Ciclo #
+                {result.week.cycle.number}
+              </DialogDescription>
+            </DialogHeader>
+            <RunWeeklySummary result={result} />
+            <DialogFooter>
+              <Button onClick={() => change(false)}>Listo</Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            <DialogHeader>
+              <DialogTitle>¿Ejecutar la rotación semanal?</DialogTitle>
+              <DialogDescription>
+                Cierra el ciclo si ya terminó, repone las carteras desde el pool y genera los planes
+                de la semana. Es seguro repetirla: no duplica planes ya generados.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => change(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={run} disabled={mutation.isPending}>
+                {mutation.isPending ? 'Ejecutando…' : 'Ejecutar ahora'}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Botón ADMIN "Ejecutar rotación semanal" con su diálogo (para ubicaciones estables, p. ej. cabeceras). */
+export function RunWeeklyButton({
+  variant = 'outline',
+  size,
+  label = 'Ejecutar rotación semanal',
+  onClick,
+}: {
+  variant?: ButtonProps['variant'];
+  size?: ButtonProps['size'];
+  label?: string;
+  /** Si se pasa, el botón solo dispara `onClick` (el diálogo lo monta el padre con RunWeeklyDialog). */
+  onClick?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
     <>
-      <Button variant={variant} size={size} onClick={() => setOpen(true)}>
+      <Button variant={variant} size={size} onClick={onClick ?? (() => setOpen(true))}>
         <RefreshCw aria-hidden="true" />
         {label}
       </Button>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          {result ? (
-            <div className="grid gap-4">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
-                  Rotación ejecutada
-                </DialogTitle>
-                <DialogDescription>
-                  Semana {result.week.weekNumber} de {result.week.totalWeeks} · Ciclo #
-                  {result.week.cycle.number}
-                </DialogDescription>
-              </DialogHeader>
-              <RunWeeklySummary result={result} />
-              <DialogFooter>
-                <Button onClick={() => onOpenChange(false)}>Listo</Button>
-              </DialogFooter>
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              <DialogHeader>
-                <DialogTitle>¿Ejecutar la rotación semanal?</DialogTitle>
-                <DialogDescription>
-                  Cierra el ciclo si ya terminó, repone las carteras desde el pool y genera los
-                  planes de la semana. Es seguro repetirla: no duplica planes ya generados.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={run} disabled={mutation.isPending}>
-                  {mutation.isPending ? 'Ejecutando…' : 'Ejecutar ahora'}
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {!onClick && <RunWeeklyDialog open={open} onOpenChange={setOpen} />}
     </>
   );
 }

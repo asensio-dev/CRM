@@ -9,7 +9,7 @@ import { RegisterContactDialog } from '@/features/pipeline';
 import { portfolioKeys, useCurrentCycle, useMyWeek } from '@/features/portfolio/api';
 import { formatLocalRange } from '@/features/portfolio/format';
 import { ProgressBar } from '@/features/portfolio/progress-bar';
-import { RunWeeklyButton } from '@/features/portfolio/run-weekly';
+import { RunWeeklyButton, RunWeeklyDialog } from '@/features/portfolio/run-weekly';
 import { cn } from '@/shared/lib/cn';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
@@ -137,6 +137,7 @@ export function MyWeekPage() {
   const [tab, setTab] = useState<PlanTab>('pending');
   const [query, setQuery] = useState('');
   const [registering, setRegistering] = useState<MyWeekItemDto | null>(null);
+  const [runWeeklyOpen, setRunWeeklyOpen] = useState(false);
 
   const refresh = () => void qc.invalidateQueries({ queryKey: portfolioKeys.all });
 
@@ -204,7 +205,11 @@ export function MyWeekPage() {
             ? 'No se ha abierto ningún ciclo de rotación. Ejecuta la rotación semanal para abrirlo, repartir las carteras y generar los planes.'
             : 'Todavía no se ha abierto un ciclo de rotación. Un administrador debe ejecutar la rotación semanal; vuelve a revisar en un momento.'
         }
-        action={isAdmin ? <RunWeeklyButton variant="default" /> : undefined}
+        action={
+          isAdmin ? (
+            <RunWeeklyButton variant="default" onClick={() => setRunWeeklyOpen(true)} />
+          ) : undefined
+        }
       />
     );
   } else if (data.planId === null) {
@@ -223,7 +228,11 @@ export function MyWeekPage() {
               ? 'El plan se genera con la rotación semanal (lunes 6:00). Si el ciclo ya está abierto, puedes ejecutarla ahora: no duplica nada.'
               : 'El plan se genera automáticamente cada lunes. Si ya pasó, pide a un administrador que ejecute la rotación semanal.'
           }
-          action={isAdmin ? <RunWeeklyButton variant="default" /> : undefined}
+          action={
+            isAdmin ? (
+              <RunWeeklyButton variant="default" onClick={() => setRunWeeklyOpen(true)} />
+            ) : undefined
+          }
         />
       </>
     );
@@ -371,6 +380,8 @@ export function MyWeekPage() {
           }}
         />
       )}
+      {/* Fuera de `body`: el estado vacío que contiene el botón desaparece al refrescarse tras la rotación */}
+      {isAdmin && <RunWeeklyDialog open={runWeeklyOpen} onOpenChange={setRunWeeklyOpen} />}
     </div>
   );
 }
