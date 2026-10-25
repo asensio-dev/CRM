@@ -1,4 +1,5 @@
 // Cada módulo publica sus contratos en su propio archivo; aquí solo se re-exportan.
+export * from './analytics';
 export * from './common';
 export * from './companies';
 export * from './identity';
