@@ -17,6 +17,7 @@
     "verify": "bun run lint && bun run typecheck && bun run arch && bun run test && bun run secrets",
     "test:integration": "bun run --filter @axiom/backend test:integration",
     "test:e2e": "bun scripts/test-e2e.ts",
+    "typecheck:e2e": "tsc -p e2e/tsconfig.json",
     "prepare": "lefthook install"
   },
   "overrides": {

@@ -75,3 +75,5 @@ Archivos compartidos: en `backend/src/app.module.ts` y en `frontend/src/app/rout
 | `cd backend && bun run db:migrate` | Aplica migraciones pendientes en local |
 | `cd backend && bun run db:seed` | Datos iniciales idempotentes |
 | `cd backend && bun run db:status` | Estado de migraciones |
+| `bun run test:integration` | Integración del backend contra `AxiomCRM_Test` (recrea y siembra la base; ver [testing.md](testing.md)) |
+| `bun run test:e2e` | E2E Playwright (Chromium) contra `AxiomCRM_Test`; no forma parte de `verify` |

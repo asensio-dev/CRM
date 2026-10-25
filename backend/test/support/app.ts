@@ -30,7 +30,13 @@ export interface TestApp {
   api<T = unknown>(
     method: string,
     path: string,
-    opts?: { token?: string; body?: unknown; cookie?: string; form?: FormData },
+    opts?: {
+      token?: string;
+      body?: unknown;
+      cookie?: string;
+      form?: FormData;
+      headers?: Record<string, string>;
+    },
   ): Promise<ApiResponse<T>>;
   login(key: TestUserKey): Promise<Session>;
   close(): Promise<void>;
@@ -38,7 +44,7 @@ export interface TestApp {
 
 /** Arranca el AppModule real (mismo cableado que main.ts) contra AxiomCRM_Test. */
 export async function bootApp(
-  opts: { port?: number; throttling?: boolean } = {},
+  opts: { port?: number; throttling?: boolean; trustProxy?: boolean } = {},
 ): Promise<TestApp> {
   assertTestDatabase(process.env.DATABASE_URL); // nunca la base de desarrollo
 
@@ -53,6 +59,8 @@ export async function bootApp(
   app.use(cookieParser());
   app.setGlobalPrefix('api');
   app.useGlobalFilters(new DomainExceptionFilter());
+  if (opts.trustProxy)
+    (app as unknown as { set(k: string, v: unknown): void }).set('trust proxy', 1);
   await app.listen(opts.port ?? 0, '127.0.0.1');
   const baseUrl = `${(await app.getUrl()).replace('[::1]', '127.0.0.1')}/api`;
 
@@ -61,9 +69,15 @@ export async function bootApp(
   async function api<T>(
     method: string,
     path: string,
-    opts: { token?: string; body?: unknown; cookie?: string; form?: FormData } = {},
+    opts: {
+      token?: string;
+      body?: unknown;
+      cookie?: string;
+      form?: FormData;
+      headers?: Record<string, string>;
+    } = {},
   ): Promise<ApiResponse<T>> {
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = { ...opts.headers };
     if (opts.token) headers.authorization = `Bearer ${opts.token}`;
     if (opts.cookie) headers.cookie = opts.cookie;
     let body: string | FormData | undefined;
