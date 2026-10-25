@@ -29,6 +29,10 @@ desktop.ini
 .vscode/*
 !.vscode/extensions.json
 
+# --- Playwright (las trazas contienen tokens) ---
+test-results/
+playwright-report/
+
 # --- Logs ---
 *.log
 logs/

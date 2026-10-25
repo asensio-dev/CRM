@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import type { ApiError } from '@axiom/contracts';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from '../../src/app.module';
@@ -36,16 +37,23 @@ export interface TestApp {
 }
 
 /** Arranca el AppModule real (mismo cableado que main.ts) contra AxiomCRM_Test. */
-export async function bootApp(): Promise<TestApp> {
+export async function bootApp(
+  opts: { port?: number; throttling?: boolean } = {},
+): Promise<TestApp> {
   assertTestDatabase(process.env.DATABASE_URL); // nunca la base de desarrollo
 
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  let builder = Test.createTestingModule({ imports: [AppModule] });
+  if (opts.throttling === false) {
+    // E2E: todos los navegadores comparten IP y el login admite 5 intentos/min (se prueba en integración).
+    builder = builder.overrideGuard(ThrottlerGuard).useValue({ canActivate: () => true });
+  }
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication({ logger: ['error'] });
   app.use(helmet());
   app.use(cookieParser());
   app.setGlobalPrefix('api');
   app.useGlobalFilters(new DomainExceptionFilter());
-  await app.listen(0, '127.0.0.1');
+  await app.listen(opts.port ?? 0, '127.0.0.1');
   const baseUrl = `${(await app.getUrl()).replace('[::1]', '127.0.0.1')}/api`;
 
   const sessions = new Map<TestUserKey, Session>();

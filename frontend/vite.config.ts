@@ -12,7 +12,13 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     // Mismo origen para que la cookie httpOnly del refresh token funcione.
-    proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: false } },
+    // API_PROXY_TARGET permite apuntar a otro backend (p. ej. las pruebas E2E con su propio puerto).
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET ?? 'http://localhost:3000',
+        changeOrigin: false,
+      },
+    },
   },
   preview: { port: 5173 },
 });
