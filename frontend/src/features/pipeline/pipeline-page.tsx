@@ -106,7 +106,7 @@ function Filters({
   }, [search.q]);
 
   return (
-    <search className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_14rem_18rem_auto]">
+    <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_14rem_18rem_auto]">
       <div className="relative">
         <Search
           className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground"
@@ -166,7 +166,7 @@ function Filters({
           Limpiar
         </Button>
       )}
-    </search>
+    </div>
   );
 }
 
