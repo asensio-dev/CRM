@@ -6,7 +6,6 @@ import { cn } from '@/shared/lib/cn';
 import { managuaDay } from '@/shared/lib/managua-time';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { NativeSelect } from '@/shared/ui/native-select';
 import { PageHeader } from '@/shared/ui/page-header';
 import { QueryError } from '@/shared/ui/query-error';
 import { SearchableSelect } from '@/shared/ui/searchable-select';
@@ -165,20 +164,16 @@ function Filters({
       )}
       <div className="grid min-w-44 gap-1.5">
         <Label htmlFor="f-sector">Sector</Label>
-        <NativeSelect
+        <SearchableSelect
           id="f-sector"
-          value={search.sectorId ?? ''}
-          onChange={(e) =>
-            update({ sectorId: e.target.value ? Number(e.target.value) : undefined })
-          }
-        >
-          <option value="">Todos</option>
-          {sectors.data?.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </NativeSelect>
+          value={sectors.data?.find((s) => s.id === search.sectorId) ?? null}
+          onChange={(o) => update({ sectorId: o?.id })}
+          options={sectors.data ?? []}
+          isLoading={sectors.isPending}
+          placeholder="Todos"
+          searchPlaceholder="Buscar sector…"
+          emptyText="Ningún sector coincide"
+        />
       </div>
     </form>
   );

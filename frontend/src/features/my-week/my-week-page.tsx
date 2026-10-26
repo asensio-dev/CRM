@@ -17,11 +17,11 @@ import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Label } from '@/shared/ui/label';
-import { NativeSelect } from '@/shared/ui/native-select';
 import { PageHeader } from '@/shared/ui/page-header';
 import { Pagination } from '@/shared/ui/pagination';
 import { QueryError } from '@/shared/ui/query-error';
 import { SearchInput } from '@/shared/ui/search-input';
+import { SearchableSelect } from '@/shared/ui/searchable-select';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { companyDisplayName, PlanItemRow } from './plan-item-row';
 import {
@@ -168,34 +168,39 @@ export function MyWeekPage() {
     list.setPage(1);
   };
 
-  const onSelectExecutive = (id: string) =>
+  const onSelectExecutive = (id: number | undefined) =>
     void navigate({
       to: '/mi-semana',
-      search: (id ? { userId: Number(id) } : {}) as never,
+      search: (id !== undefined ? { userId: id } : {}) as never,
       replace: true,
     });
+
+  const executiveOptions = executives.map((e) => ({
+    id: e.userId,
+    name: `${e.fullName}${e.plan ? ` — ${e.plan.contacted}/${e.plan.quota}` : ' — sin plan'}`,
+  }));
+  const selectedExecutive =
+    effectiveUserId === undefined
+      ? null
+      : (executiveOptions.find((o) => o.id === effectiveUserId) ?? {
+          id: effectiveUserId,
+          name: `Usuario ${effectiveUserId}`,
+        });
 
   const selector =
     staff && executives.length > 0 ? (
       <div className="grid gap-1 sm:max-w-xs">
         <Label htmlFor="week-executive">Ejecutivo</Label>
-        <NativeSelect
+        <SearchableSelect
           id="week-executive"
-          className="h-10"
-          value={effectiveUserId !== undefined ? String(effectiveUserId) : ''}
-          onChange={(e) => onSelectExecutive(e.target.value)}
-        >
-          {effectiveUserId !== undefined &&
-            !executives.some((e) => e.userId === effectiveUserId) && (
-              <option value={effectiveUserId}>Usuario {effectiveUserId}</option>
-            )}
-          {executives.map((e) => (
-            <option key={e.userId} value={e.userId}>
-              {e.fullName}
-              {e.plan ? ` — ${e.plan.contacted}/${e.plan.quota}` : ' — sin plan'}
-            </option>
-          ))}
-        </NativeSelect>
+          aria-label="Ejecutivo"
+          value={selectedExecutive}
+          onChange={(o) => o && onSelectExecutive(o.id)}
+          options={executiveOptions}
+          clearable={false}
+          searchPlaceholder="Buscar ejecutivo…"
+          emptyText="Ningún ejecutivo coincide"
+        />
       </div>
     ) : null;
 

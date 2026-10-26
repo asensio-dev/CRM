@@ -413,12 +413,13 @@ describe('Mi semana', () => {
     });
     const router = await mountApp('/mi-semana', 'SUPERVISOR');
     const u = userEvent.setup();
-    const select = (await screen.findByLabelText('Ejecutivo')) as HTMLSelectElement;
+    const select = await screen.findByLabelText('Ejecutivo');
     // Sin ?userId= se abre el primer ejecutivo.
     expect(await screen.findByText('Cliente de 2')).toBeTruthy();
-    expect(select.value).toBe('2');
+    expect(select.textContent).toContain('Ana Ejecutiva');
 
-    await u.selectOptions(select, '3');
+    await u.click(select);
+    await u.click(await screen.findByRole('option', { name: /Bruno Ejecutivo/ }));
     await waitFor(() =>
       expect(router.state.location.search as Record<string, unknown>).toEqual({ userId: 3 }),
     );
@@ -443,9 +444,9 @@ describe('Mi semana', () => {
       return undefined;
     });
     await mountApp('/mi-semana?userId=3', 'SUPERVISOR');
-    const select = (await screen.findByLabelText('Ejecutivo')) as HTMLSelectElement;
+    const select = await screen.findByLabelText('Ejecutivo');
     await screen.findByTestId('plan-item-1');
-    expect(select.value).toBe('3');
+    expect(select.textContent).toContain('Bruno Ejecutivo');
     const calls = mocked.calls.filter((c) => c.url.pathname === '/api/portfolio/my-week');
     expect(calls.every((c) => c.url.searchParams.get('userId') === '3')).toBe(true);
   });
