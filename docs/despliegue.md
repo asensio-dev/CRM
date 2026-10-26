@@ -79,6 +79,8 @@ sqlserver://<HOST>:<PUERTO>;database=AxiomCRM;user=<USUARIO>;password=<CONTRASE�
 ```
 
 - En producción usa `trustServerCertificate=false` con un certificado válido en el servidor. La opción `true` solo es aceptable en desarrollo local.
+- Pool: el adaptador abre hasta 10 conexiones por proceso. Para dejarlo explícito añade `;connectionLimit=10;poolTimeout=15`. Con una instancia es suficiente (la API se satura por CPU antes; ver [rendimiento-qa.md](rendimiento-qa.md) §8).
+- Entorno de QA tipo producción con los datos reales y prueba de carga: [qa.md](qa.md).
 - La contraseña va en `DATABASE_URL` del entorno o de un gestor de secretos, nunca en un archivo versionado.
 
 ### 2.4 `QUOTED_IDENTIFIER` (ADR 0004)
@@ -92,6 +94,8 @@ Las migraciones están versionadas en `backend/prisma/migrations`. A fecha de es
 - `20261025035605_init`
 - `20261025045006_search_and_board_indexes`
 - `20261025145733_analytics_and_contract_indexes`
+- `20261025154934_refresh_token_replaced_at`
+- `20261025200000_qa_performance_indexes` (índices de la prueba de carga, ver [rendimiento-qa.md](rendimiento-qa.md))
 
 En QA y producción se aplican con `migrate deploy`, **nunca** con `migrate dev` ni `db push`:
 
@@ -154,7 +158,7 @@ server {
 ### 5.1 Requisitos del proxy que la API necesita
 
 - **HTTPS:** la cookie `refresh_token` se marca `Secure` cuando `NODE_ENV=production`. Sin HTTPS el navegador no la guardará.
-- **`trust proxy` (pendiente en el código):** la limitación de intentos de login (`@nestjs/throttler`, 5 por minuto) se calcula por IP. Detrás de un proxy, todas las peticiones llegan con la IP del proxy, así que los 5 intentos se comparten entre todos los usuarios. Hay que configurar Express para confiar en el primer salto (`app.set('trust proxy', 1)` en `main.ts`) antes de desplegar tras un proxy. **A fecha de este documento, `main.ts` no lo configura.**
+- **`TRUST_PROXY`:** la limitación de intentos de login (`@nestjs/throttler`, 5 por minuto por IP y 10 cada 15 min por cuenta) usa la IP del cliente. Detrás de un proxy define `TRUST_PROXY=1` (o la subred del proxy) para que `main.ts` configure `trust proxy` en Express; si no, los 5 intentos por IP se comparten entre todos los usuarios.
 - **Tamaño de subida:** `client_max_body_size` (o el equivalente de tu proxy) debe permitir al menos 50 MB para la importación.
 - **Swagger:** no se sirve en producción. Comprueba que `/api/docs` devuelve `404` tras el despliegue.
 
