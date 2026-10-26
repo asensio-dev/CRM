@@ -3,7 +3,7 @@
  * luminosidad media en claro (contraste >= 3:1 contra --card) y más clara en oscuro.
  */
 :root {
-  --chart-1: oklch(0.52 0.19 262);
+  --chart-1: var(--fill);
   --chart-2: oklch(0.66 0.17 55);
   --chart-3: oklch(0.58 0.12 190);
   --chart-4: oklch(0.55 0.2 340);
@@ -14,7 +14,7 @@
 }
 
 .dark {
-  --chart-1: oklch(0.72 0.15 262);
+  --chart-1: var(--fill);
   --chart-2: oklch(0.78 0.14 60);
   --chart-3: oklch(0.76 0.11 190);
   --chart-4: oklch(0.74 0.16 340);

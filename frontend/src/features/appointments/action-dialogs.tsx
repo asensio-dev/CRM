@@ -107,12 +107,14 @@ function RescheduleForm({
         </DialogDescription>
       </DialogHeader>
       <div
-        className="flex flex-wrap items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm"
+        className="flex flex-wrap items-center gap-2.5 rounded-lg border bg-muted/50 px-3.5 py-2.5 text-sm tabular-nums"
         data-testid="reschedule-preview"
       >
-        <span className="line-through opacity-70">{formatAbsolute(appointment.scheduledAt)}</span>
-        <ArrowRight className="size-4 text-muted-foreground" aria-hidden="true" />
-        <span className="font-medium">
+        <span className="text-muted-foreground line-through">
+          {formatAbsolute(appointment.scheduledAt)}
+        </span>
+        <ArrowRight className="size-4 text-primary" aria-hidden="true" />
+        <span className="font-semibold">
           {nextValid ? formatAbsolute(managuaLocalToIso(next)) : 'Nueva fecha pendiente'}
         </span>
       </div>

@@ -13,14 +13,10 @@ export const MODE_ICONS: Record<AppointmentMode, LucideIcon> = {
   TELEFONICA: Phone,
 };
 
-/** Estilos de badge por estado de cita (mismo patrón que los estados del pipeline). */
+/** Estilos de badge por estado de cita, sobre los tokens del sistema (claro y oscuro). */
 export const APPOINTMENT_STATUS_BADGE: Record<AppointmentStatus, string> = {
-  PROGRAMADA:
-    'bg-sky-100 text-sky-800 border-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30',
-  REALIZADA:
-    'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30',
-  CANCELADA:
-    'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30',
-  REPROGRAMADA:
-    'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30',
+  PROGRAMADA: 'border-primary/20 bg-accent text-accent-foreground',
+  REALIZADA: 'border-success/25 bg-success/10 text-success',
+  CANCELADA: 'border-destructive/20 bg-destructive/10 text-destructive',
+  REPROGRAMADA: 'border-warning/25 bg-warning/10 text-warning',
 };

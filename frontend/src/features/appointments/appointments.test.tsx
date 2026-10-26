@@ -133,6 +133,90 @@ describe('AppointmentsPage', () => {
   });
 });
 
+describe('AppointmentsPage: búsqueda y paginación', () => {
+  test('cada día muestra 4 citas y "Ver N más" despliega el resto', async () => {
+    const many = Array.from({ length: 6 }, (_, i) =>
+      appt(i + 1, {
+        companyName: `EMPRESA ${i + 1}`,
+        scheduledAt: `2026-10-27T${String(14 + i).padStart(2, '0')}:00:00.000Z`,
+      }),
+    );
+    mocked = mockFetch(({ url }) =>
+      url.pathname === '/api/appointments/agenda' ? jsonResponse(many) : undefined,
+    );
+    await mountApp('/citas?week=2026-10-26');
+    const day = await waitFor(() => {
+      const el = document.querySelector('[data-day="2026-10-27"]') as HTMLElement | null;
+      expect(el?.querySelectorAll('article')).toHaveLength(4);
+      return el as HTMLElement;
+    });
+    await userEvent.setup().click(within(day).getByRole('button', { name: 'Ver 2 más' }));
+    expect(day.querySelectorAll('article')).toHaveLength(6);
+    expect(within(day).getByRole('button', { name: 'Ver menos' })).toBeTruthy();
+  });
+
+  test('la búsqueda de la agenda filtra por empresa y notas, sin tildes', async () => {
+    mocked = mockFetch(({ url }) =>
+      url.pathname === '/api/appointments/agenda'
+        ? jsonResponse([
+            appt(1, { companyName: 'FERRETERÍA LÓPEZ' }),
+            appt(2, { companyName: 'OTRA S.A.', notes: 'Llevar catálogo' }),
+            appt(3, { companyName: 'TERCERA S.A.' }),
+          ])
+        : undefined,
+    );
+    await mountApp('/citas?week=2026-10-26');
+    await screen.findByTestId('appointment-3');
+    const user = userEvent.setup();
+    const input = screen.getByLabelText('Buscar citas de la semana');
+    await user.type(input, 'ferreteria');
+    await waitFor(() => expect(screen.queryByTestId('appointment-3')).toBeNull());
+    expect(screen.getByTestId('appointment-1')).toBeTruthy();
+    expect(screen.getByText('1 de 3 citas coinciden con la búsqueda.')).toBeTruthy();
+    await user.clear(input);
+    await user.type(input, 'catalogo');
+    await waitFor(() => expect(screen.queryByTestId('appointment-1')).toBeNull());
+    expect(screen.getByTestId('appointment-2')).toBeTruthy();
+  });
+
+  test('la lista pagina en el servidor: filas por página y número de página van al API', async () => {
+    mocked = mockFetch(({ url }) =>
+      url.pathname === '/api/appointments'
+        ? jsonResponse({
+            items: [appt(1), appt(2, { companyName: 'OTRA S.A.' })],
+            page: Number(url.searchParams.get('page')),
+            pageSize: Number(url.searchParams.get('pageSize')),
+            total: 120,
+          })
+        : undefined,
+    );
+    const router = await mountApp('/citas?view=lista');
+    await screen.findByTestId('appointment-1');
+    const first = mocked.calls.find((c) => c.url.pathname === '/api/appointments');
+    expect(first?.url.searchParams.get('pageSize')).toBe('20');
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText('Filas por página'), '50');
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ pageSize: 50 }));
+    await waitFor(() =>
+      expect(mocked.calls.some((c) => c.url.searchParams.get('pageSize') === '50')).toBe(true),
+    );
+    await user.click(await screen.findByRole('button', { name: 'Página 2' }));
+    await waitFor(() =>
+      expect(
+        mocked.calls.some(
+          (c) =>
+            c.url.searchParams.get('page') === '2' && c.url.searchParams.get('pageSize') === '50',
+        ),
+      ).toBe(true),
+    );
+    // La búsqueda filtra en cliente la página recibida y lo avisa.
+    await user.type(screen.getByLabelText('Buscar'), 'otra');
+    await waitFor(() => expect(screen.queryByTestId('appointment-1')).toBeNull());
+    expect(screen.getByTestId('appointment-2')).toBeTruthy();
+    expect(screen.getByText(/La búsqueda filtra las citas de esta página/)).toBeTruthy();
+  });
+});
+
 describe('acciones según estado', () => {
   test('solo PROGRAMADA se gestiona', () => {
     expect(availableActions('PROGRAMADA')).toEqual(['reschedule', 'complete', 'cancel']);
