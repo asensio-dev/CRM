@@ -33,7 +33,7 @@ const contract = (id: number, over: Partial<ContractDto> = {}): ContractDto => (
   ...over,
 });
 
-const page = (items: ContractDto[]) => ({ items, page: 1, pageSize: 25, total: items.length });
+const page = (items: ContractDto[]) => ({ items, page: 1, pageSize: 7, total: items.length });
 
 let mocked: ReturnType<typeof mockFetch>;
 afterEach(() => mocked?.restore());
@@ -248,12 +248,12 @@ describe('ContractsPage', () => {
       mocked.calls
         .find((c) => c.url.pathname === '/api/contracts')
         ?.url.searchParams.get('pageSize'),
-    ).toBe('25');
+    ).toBe('7');
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText('Filas por página'), '50');
-    await waitFor(() => expect(router.state.location.search).toMatchObject({ pageSize: 50 }));
+    await user.selectOptions(screen.getByLabelText('Filas por página'), '28');
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ pageSize: 28 }));
     await waitFor(() =>
-      expect(mocked.calls.some((c) => c.url.searchParams.get('pageSize') === '50')).toBe(true),
+      expect(mocked.calls.some((c) => c.url.searchParams.get('pageSize') === '28')).toBe(true),
     );
     await user.type(screen.getByLabelText('Buscar'), 'beta');
     await waitFor(() => expect(screen.queryAllByText('CT-0001')).toHaveLength(0));

@@ -162,11 +162,11 @@ describe('Mi semana', () => {
     await mountApp('/mi-semana', 'EJECUTIVO');
     const u = userEvent.setup();
     await screen.findByTestId('plan-item-1');
-    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(10);
-    expect(screen.getByText('1–10 de 26 empresas')).toBeTruthy();
+    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(7);
+    expect(screen.getByText('1–7 de 26 empresas')).toBeTruthy();
 
-    await u.click(screen.getByRole('button', { name: 'Página 3' }));
-    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(6);
+    await u.click(screen.getByRole('button', { name: 'Página 4' }));
+    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(5);
     expect(screen.getByTestId('plan-item-26')).toBeTruthy();
 
     await u.type(screen.getByRole('searchbox', { name: 'Buscar en el plan' }), 'panaderia name');
@@ -174,8 +174,8 @@ describe('Mi semana', () => {
     expect(screen.getByText('1–1 de 1 empresas')).toBeTruthy();
 
     await u.clear(screen.getByRole('searchbox', { name: 'Buscar en el plan' }));
-    expect(screen.getByText('1–10 de 26 empresas')).toBeTruthy();
-    await u.selectOptions(screen.getByLabelText('Filas por página'), '50');
+    expect(screen.getByText('1–7 de 26 empresas')).toBeTruthy();
+    await u.selectOptions(screen.getByLabelText('Filas por página'), '28');
     expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(26);
   });
 
@@ -191,9 +191,9 @@ describe('Mi semana', () => {
     const u = userEvent.setup();
     await screen.findByTestId('plan-item-1');
     await u.click(screen.getByRole('button', { name: 'Página 2' }));
-    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(2);
+    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(5);
     await u.click(screen.getByRole('tab', { name: /Todas \(24\)/ }));
-    expect(screen.getByText('1–10 de 24 empresas')).toBeTruthy();
+    expect(screen.getByText('1–7 de 24 empresas')).toBeTruthy();
     expect(screen.getByTestId('plan-item-1')).toBeTruthy();
   });
 

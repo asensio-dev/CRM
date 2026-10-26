@@ -28,7 +28,10 @@ test.describe
       await expect(page.getByRole('heading', { name: 'Mi semana', level: 1 })).toBeVisible();
       const plan = page.getByRole('list', { name: 'Plan semanal' });
       await expect(plan).toBeVisible();
-      expect(await plan.locator('> li').count()).toBeGreaterThanOrEqual(20);
+      // El plan se pagina de 7 en 7; el total (≥ 20) se lee del pie de paginación.
+      await expect(plan.locator('> li')).toHaveCount(7);
+      const range = await page.getByText(/^1–7 de \d+ empresas$/).textContent();
+      expect(Number(range?.match(/de (\d+)/)?.[1])).toBeGreaterThanOrEqual(20);
     });
 
     test('Cartera: el SUPERVISOR ve la cobertura de ambos ejecutivos y sus asignaciones', async ({

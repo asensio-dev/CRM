@@ -100,7 +100,7 @@ function DetailSkeleton() {
 const branchText = (b: CompanyBranchDto) => [b.tradeName, b.address, b.phone].join(' ');
 
 function BranchesSection({ branches, onAdd }: { branches: CompanyBranchDto[]; onAdd: () => void }) {
-  const list = useClientList(branches, { searchText: branchText, pageSize: 10 });
+  const list = useClientList(branches, { searchText: branchText });
   return (
     <Card className="overflow-hidden">
       <SectionToolbar title="Sucursales" count={branches.length}>
@@ -166,7 +166,6 @@ function BranchesSection({ branches, onAdd }: { branches: CompanyBranchDto[]; on
             total={list.total}
             onPageChange={list.setPage}
             onPageSizeChange={list.setPageSize}
-            pageSizeOptions={[10, 25, 50]}
             itemLabel="sucursales"
           />
         </>

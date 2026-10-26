@@ -88,11 +88,11 @@ describe('búsqueda y tablero', () => {
 });
 
 describe('paginación por columna', () => {
-  test('cuenta páginas de 8 sobre las tarjetas alcanzables (máx. 100)', () => {
+  test('cuenta páginas de 7 sobre las tarjetas alcanzables (máx. 100)', () => {
     expect(columnPageCount(0)).toBe(1);
-    expect(columnPageCount(8)).toBe(1);
-    expect(columnPageCount(9)).toBe(2);
-    expect(columnPageCount(1234)).toBe(13);
+    expect(columnPageCount(7)).toBe(1);
+    expect(columnPageCount(8)).toBe(2);
+    expect(columnPageCount(1234)).toBe(15);
   });
   test('recorta la página al rango válido', () => {
     expect(clampPage(5, 10)).toBe(2);
@@ -101,8 +101,9 @@ describe('paginación por columna', () => {
   test('sube limitPerColumn solo cuando la página pide tarjetas que faltan', () => {
     expect(limitForPage(2, 1234, 20)).toBeNull();
     expect(limitForPage(3, 1234, 20)).toBe(40);
-    expect(limitForPage(13, 1234, 40)).toBe(100);
+    expect(limitForPage(6, 1234, 40)).toBe(60);
+    expect(limitForPage(15, 1234, 40)).toBe(100);
     expect(limitForPage(3, 18, 20)).toBeNull();
-    expect(limitForPage(13, 1234, 100)).toBeNull();
+    expect(limitForPage(15, 1234, 100)).toBeNull();
   });
 });

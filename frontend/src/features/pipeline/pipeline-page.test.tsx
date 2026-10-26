@@ -94,9 +94,9 @@ describe('PipelinePage', () => {
     );
     expect(document.querySelectorAll('section[data-status]')).toHaveLength(8);
     expect(screen.getByRole('region', { name: /Descartado, 7 empresas/ })).toBeTruthy();
-    // 8 tarjetas por página; las columnas que caben en una página no muestran paginación
-    expect(within(col).getAllByTestId(/^card-/)).toHaveLength(8);
-    expect(within(col).getByText('1 / 13')).toBeTruthy();
+    // 7 tarjetas por página; las columnas que caben en una página no muestran paginación
+    expect(within(col).getAllByTestId(/^card-/)).toHaveLength(7);
+    expect(within(col).getByText('1 / 15')).toBeTruthy();
     const contactado = screen.getByRole('region', { name: /Contactado, 2 empresas/ });
     expect(within(contactado).queryByRole('navigation', { name: 'Paginación' })).toBeNull();
   });
@@ -108,18 +108,18 @@ describe('PipelinePage', () => {
     const user = userEvent.setup();
 
     await user.click(within(col).getByRole('button', { name: 'Página siguiente' }));
-    expect(within(col).getByText('2 / 13')).toBeTruthy();
+    expect(within(col).getByText('2 / 15')).toBeTruthy();
     expect(within(col).queryByText('Alfa S.A.')).toBeNull();
-    expect(within(col).getByText('Empresa 1007')).toBeTruthy();
-    expect(within(col).getAllByTestId(/^card-/)).toHaveLength(8);
+    expect(within(col).getByText('Empresa 1006')).toBeTruthy();
+    expect(within(col).getAllByTestId(/^card-/)).toHaveLength(7);
     // con 20 tarjetas cargadas la página 2 no necesita otra consulta
     expect(router.state.location.search).not.toHaveProperty('limitPerColumn');
 
-    // la página 3 (tarjetas 17–24) obliga a subir el límite a 40
+    // la página 3 (tarjetas 15–21) obliga a subir el límite a 40
     await user.click(within(col).getByRole('button', { name: 'Página siguiente' }));
     await waitFor(() => expect(router.state.location.search).toMatchObject({ limitPerColumn: 40 }));
-    await waitFor(() => expect(within(col).getAllByTestId(/^card-/)).toHaveLength(8));
-    expect(within(col).getByText('Empresa 1015')).toBeTruthy();
+    await waitFor(() => expect(within(col).getAllByTestId(/^card-/)).toHaveLength(7));
+    expect(within(col).getByText('Empresa 1013')).toBeTruthy();
     expect(
       api.calls.some(
         (c) =>
@@ -134,13 +134,13 @@ describe('PipelinePage', () => {
     const col = await screen.findByRole('region', { name: /Por contactar, 1234 empresas/ });
     const user = userEvent.setup();
     await user.click(within(col).getByRole('button', { name: 'Página siguiente' }));
-    expect(within(col).getByText('2 / 13')).toBeTruthy();
+    expect(within(col).getByText('2 / 15')).toBeTruthy();
 
     await user.type(screen.getByRole('searchbox', { name: 'Buscar empresa' }), 'empresa 10');
     await waitFor(() => expect(router.state.location.search).toMatchObject({ q: 'empresa 10' }));
     const filtered = await screen.findByRole('region', { name: /Por contactar, 100 empresas/ });
     // la página vuelve a 1 y la consulta lleva el texto (el API ignora tildes y mayúsculas)
-    expect(within(filtered).getByText('1 / 13')).toBeTruthy();
+    expect(within(filtered).getByText('1 / 15')).toBeTruthy();
     expect(within(filtered).getByText('Empresa 1000')).toBeTruthy();
     expect(
       api.calls.some(

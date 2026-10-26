@@ -258,7 +258,7 @@ describe('tabla de ejecutivos: búsqueda y paginación', () => {
       contractsActive: 0,
     }));
 
-  test('pagina de 10 en 10 y la búsqueda filtra por nombre sin tildes', async () => {
+  test('pagina de 7 en 7 y la búsqueda filtra por nombre sin tildes', async () => {
     const data: ExecutivesDto = {
       week: { start: '2026-10-19', end: '2026-10-25' },
       cycle: null,
@@ -269,11 +269,11 @@ describe('tabla de ejecutivos: búsqueda y paginación', () => {
     };
     render(<ExecutivesCard data={data} />);
     const bodyRows = () => screen.getAllByRole('row').slice(1);
-    expect(bodyRows()).toHaveLength(10);
-    expect(screen.getByText(/1–10 de 13 ejecutivos/)).toBeTruthy();
+    expect(bodyRows()).toHaveLength(7);
+    expect(screen.getByText(/1–7 de 13 ejecutivos/)).toBeTruthy();
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Página 2' }));
-    expect(bodyRows()).toHaveLength(3);
+    expect(bodyRows()).toHaveLength(6);
     await user.type(screen.getByLabelText('Buscar ejecutivo…'), 'jose');
     expect(bodyRows()).toHaveLength(1);
     expect(bodyRows()[0]?.textContent).toContain('José Martínez');

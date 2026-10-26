@@ -76,7 +76,7 @@ describe('ImportPage', () => {
         return jsonResponse({
           items: [{ id: 1, rowNumber: 14, reason: 'RUC vacío' }],
           page: 1,
-          pageSize: 20,
+          pageSize: 7,
           total: 2,
         });
       }
@@ -150,19 +150,19 @@ describe('Filas rechazadas', () => {
       (await screen.findByLabelText('Archivo Excel (.xlsx)')) as HTMLInputElement,
       xlsx(),
     );
-    expect(await screen.findByText('1–20 de 45 filas')).toBeTruthy();
+    expect(await screen.findByText('1–7 de 45 filas')).toBeTruthy();
     await user.type(screen.getByLabelText('Filtrar filas rechazadas'), 'telefono');
     expect(screen.getByText('Teléfono inválido')).toBeTruthy();
     expect(screen.queryByText('RUC vacío')).toBeNull();
 
-    const nav = screen.getByText('1–20 de 45 filas').closest('nav') as HTMLElement;
-    await user.selectOptions(within(nav).getByLabelText('Filas por página'), '50');
+    const nav = screen.getByText('1–7 de 45 filas').closest('nav') as HTMLElement;
+    await user.selectOptions(within(nav).getByLabelText('Filas por página'), '56');
     await waitFor(() =>
       expect(
         mocked.calls.some(
           (c) =>
             c.url.pathname === '/api/import/4/rejections' &&
-            c.url.searchParams.get('pageSize') === '50',
+            c.url.searchParams.get('pageSize') === '56',
         ),
       ).toBe(true),
     );

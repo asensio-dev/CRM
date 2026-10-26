@@ -1,8 +1,9 @@
 import type { CreateUser, Paginated, ResetPassword, UpdateUser, UserDto } from '@axiom/contracts';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api';
+import { DEFAULT_PAGE_SIZE } from '@/shared/ui/pagination';
 
-export const USERS_PAGE_SIZE = 20;
+export const USERS_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 /** Máximo que admite el API por página; se usa para traer el directorio completo. */
 const FETCH_PAGE_SIZE = 100;
 

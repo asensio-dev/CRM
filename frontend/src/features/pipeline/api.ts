@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { companyKeys } from '@/features/companies/queries';
 import { api } from '@/shared/api';
+import { DEFAULT_PAGE_SIZE } from '@/shared/ui/pagination';
 import { isConcurrencyError, pipelineErrorMessage } from './errors';
 
 // ───────────────────────────── claves de caché ─────────────────────────────
@@ -85,7 +86,7 @@ export function usePipelineState(companyId: number, options: { enabled?: boolean
   });
 }
 
-export const TIMELINE_PAGE_SIZE = 15;
+export const TIMELINE_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 export function useTimeline(companyId: number) {
   return useInfiniteQuery({

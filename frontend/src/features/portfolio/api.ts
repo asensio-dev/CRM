@@ -12,10 +12,11 @@ import type {
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/shared/api';
+import { DEFAULT_PAGE_SIZE } from '@/shared/ui/pagination';
 import { portfolioErrorMessage } from './errors';
 
-/** Filas por página por defecto (coincide con el `pageSize` por defecto del API). */
-export const ASSIGNMENTS_PAGE_SIZE = 25;
+/** Filas por página por defecto (siempre se envía `pageSize` explícito al API). */
+export const ASSIGNMENTS_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 /** Claves de caché de cartera. Invalidar `all` refresca Mi semana, ciclo y asignaciones. */
 export const portfolioKeys = {

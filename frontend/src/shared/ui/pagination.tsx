@@ -4,7 +4,9 @@ import { Button } from './button';
 
 const nf = new Intl.NumberFormat('es-NI');
 
-export const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+/** Tamaño de página por defecto de toda la app: listas cortas, sin scroll infinito. */
+export const DEFAULT_PAGE_SIZE = 7;
+export const DEFAULT_PAGE_SIZE_OPTIONS = [7, 14, 28, 56] as const;
 
 interface PaginationProps {
   page: number;

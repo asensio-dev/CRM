@@ -5,13 +5,13 @@ import { useClientList } from '@/shared/hooks/use-client-list';
 import { initials } from '@/shared/lib/initials';
 import { Card, CardDescription, CardTitle } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { Pagination } from '@/shared/ui/pagination';
+import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS, Pagination } from '@/shared/ui/pagination';
 import { SearchInput } from '@/shared/ui/search-input';
 import { percent } from './format';
 import { ProgressBar } from './progress-bar';
 
-export const EXECUTIVES_PAGE_SIZE = 8;
-const EXECUTIVE_PAGE_SIZES = [8, 16, 32] as const;
+export const EXECUTIVES_PAGE_SIZE = DEFAULT_PAGE_SIZE;
+const EXECUTIVE_PAGE_SIZES = DEFAULT_PAGE_SIZE_OPTIONS;
 /** A partir de cuántos ejecutivos se ofrece el buscador. */
 const SEARCH_THRESHOLD = 6;
 

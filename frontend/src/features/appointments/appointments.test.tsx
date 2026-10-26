@@ -193,19 +193,19 @@ describe('AppointmentsPage: búsqueda y paginación', () => {
     const router = await mountApp('/citas?view=lista');
     await screen.findByTestId('appointment-1');
     const first = mocked.calls.find((c) => c.url.pathname === '/api/appointments');
-    expect(first?.url.searchParams.get('pageSize')).toBe('20');
+    expect(first?.url.searchParams.get('pageSize')).toBe('7');
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText('Filas por página'), '50');
-    await waitFor(() => expect(router.state.location.search).toMatchObject({ pageSize: 50 }));
+    await user.selectOptions(screen.getByLabelText('Filas por página'), '28');
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ pageSize: 28 }));
     await waitFor(() =>
-      expect(mocked.calls.some((c) => c.url.searchParams.get('pageSize') === '50')).toBe(true),
+      expect(mocked.calls.some((c) => c.url.searchParams.get('pageSize') === '28')).toBe(true),
     );
     await user.click(await screen.findByRole('button', { name: 'Página 2' }));
     await waitFor(() =>
       expect(
         mocked.calls.some(
           (c) =>
-            c.url.searchParams.get('page') === '2' && c.url.searchParams.get('pageSize') === '50',
+            c.url.searchParams.get('page') === '2' && c.url.searchParams.get('pageSize') === '28',
         ),
       ).toBe(true),
     );

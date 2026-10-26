@@ -257,7 +257,6 @@ export function UsersPage() {
               total={view.total}
               onPageChange={view.setPage}
               onPageSizeChange={view.setPageSize}
-              pageSizeOptions={[10, 20, 50, 100]}
               itemLabel="usuarios"
             />
           </>

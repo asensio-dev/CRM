@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { api } from '../api';
 import { useDebouncedValue } from '../hooks/use-debounced-value';
 import { Combobox, type ComboboxOption } from './combobox';
+import { DEFAULT_PAGE_SIZE } from './pagination';
 
 export type { ComboboxOption as CompanyOption };
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 interface CompanyPickerProps {
   id?: string;

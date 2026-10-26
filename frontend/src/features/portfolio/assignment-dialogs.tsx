@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/modal-dialog';
 import { NativeSelect } from '@/shared/ui/native-select';
-import { Pagination } from '@/shared/ui/pagination';
+import { DEFAULT_PAGE_SIZE, Pagination } from '@/shared/ui/pagination';
 import { SearchInput } from '@/shared/ui/search-input';
 import { SearchableSelect } from '@/shared/ui/searchable-select';
 import { useBulkAssign, useReassign, useReleaseAssignment } from './api';
@@ -56,7 +56,7 @@ function executiveOptions(executives: readonly ExecutiveCoverageDto[]): Combobox
 const findOption = (options: readonly ComboboxOption[], id: string) =>
   id ? (options.find((o) => String(o.id) === id) ?? null) : null;
 
-const LIST_PAGE_SIZE = 6;
+const LIST_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 const nameText = (c: SelectedCompany) => c.name;
 
 /** Lista compacta de empresas con búsqueda (si son muchas) y paginación en cliente. */

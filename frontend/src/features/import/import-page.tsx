@@ -281,7 +281,7 @@ function HistoryCard({
   selected: number | null;
   onSelect: (jobId: number) => void;
 }) {
-  const list = useClientList(entries, { searchText: historyText, pageSize: 5 });
+  const list = useClientList(entries, { searchText: historyText });
   return (
     <Card className="overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
@@ -347,7 +347,6 @@ function HistoryCard({
             total={list.total}
             onPageChange={list.setPage}
             onPageSizeChange={list.setPageSize}
-            pageSizeOptions={[5, 10]}
             itemLabel="importaciones"
           />
         </>

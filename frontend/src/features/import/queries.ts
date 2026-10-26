@@ -7,6 +7,7 @@ import type {
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
 import { api } from '@/shared/api';
+import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS } from '@/shared/ui/pagination';
 
 export const IMPORT_POLL_MS = 2000;
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -31,8 +32,8 @@ export function useImportJob(id: number | null) {
   });
 }
 
-export const REJECTIONS_PAGE_SIZE = 20;
-export const REJECTIONS_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+export const REJECTIONS_PAGE_SIZE = DEFAULT_PAGE_SIZE;
+export const REJECTIONS_PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS;
 
 export function useImportRejections(
   id: number | null,

@@ -6,7 +6,7 @@ import { formatDayMonth } from '@/shared/lib/managua-time';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Meter } from '@/shared/ui/meter';
-import { Pagination } from '@/shared/ui/pagination';
+import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS, Pagination } from '@/shared/ui/pagination';
 import { SearchInput } from '@/shared/ui/search-input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 import { formatInt, formatPct } from './format';
@@ -29,8 +29,8 @@ const COLUMNS: { key: SortKey; label: string; numeric?: boolean }[] = [
   { key: 'contractsActive', label: 'Contratos', numeric: true },
 ];
 
-export const EXECUTIVES_PAGE_SIZES = [10, 25, 50] as const;
-const COVERAGE_PAGE_SIZE = 8;
+export const EXECUTIVES_PAGE_SIZES = DEFAULT_PAGE_SIZE_OPTIONS;
+const COVERAGE_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 const executiveName = (r: { fullName: string }) => r.fullName;
 
@@ -75,7 +75,7 @@ export function ExecutivesCard({ data }: { data: ExecutivesDto }) {
     [data.executives, sort],
   );
   // El API devuelve a todos los ejecutivos con cartera: búsqueda y paginación en cliente.
-  const list = useClientList(sorted, { searchText: executiveName, pageSize: 10 });
+  const list = useClientList(sorted, { searchText: executiveName, pageSize: DEFAULT_PAGE_SIZE });
   const toggle = (key: SortKey) =>
     setSort((s) =>
       s.key === key

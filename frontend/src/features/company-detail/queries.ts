@@ -2,8 +2,9 @@ import type { Paginated, TimelineEntryDto } from '@axiom/contracts';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { pipelineKeys } from '@/features/pipeline/api';
 import { api } from '@/shared/api';
+import { DEFAULT_PAGE_SIZE_OPTIONS } from '@/shared/ui/pagination';
 
-export const TIMELINE_PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
+export const TIMELINE_PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS;
 
 /**
  * Historial paginado por número de página. La clave cuelga de `pipelineKeys.timeline(id)`,

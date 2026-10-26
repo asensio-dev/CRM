@@ -86,7 +86,7 @@ describe('ficha de empresa: listas paginadas', () => {
     const table = await screen.findByRole('table', { name: 'Sucursales' });
     expect(within(table).getByText('SUCURSAL 1')).toBeTruthy();
     expect(within(table).queryByText('SUCURSAL LEÓN')).toBeNull();
-    expect(screen.getByText('1–10 de 12 sucursales')).toBeTruthy();
+    expect(screen.getByText('1–7 de 12 sucursales')).toBeTruthy();
 
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('Buscar sucursales'), 'leon');
@@ -99,8 +99,8 @@ describe('ficha de empresa: listas paginadas', () => {
     mockApi();
     await mountApp('/empresas/8');
     expect(await screen.findByText('Nota 1')).toBeTruthy();
-    expect(screen.getByText('1–10 de 23 eventos')).toBeTruthy();
-    const nav = screen.getByText('1–10 de 23 eventos').closest('nav') as HTMLElement;
+    expect(screen.getByText('1–7 de 23 eventos')).toBeTruthy();
+    const nav = screen.getByText('1–7 de 23 eventos').closest('nav') as HTMLElement;
 
     const user = userEvent.setup();
     await user.click(within(nav).getByRole('button', { name: 'Página siguiente' }));
@@ -118,13 +118,13 @@ describe('ficha de empresa: listas paginadas', () => {
     await waitFor(() => expect(screen.queryByText('Nota 12')).toBeNull());
     expect(screen.getByText('Nota 11')).toBeTruthy();
 
-    await user.selectOptions(within(nav).getByLabelText('Filas por página'), '25');
+    await user.selectOptions(within(nav).getByLabelText('Filas por página'), '14');
     await waitFor(() =>
       expect(
         mocked.calls.some(
           (c) =>
             c.url.pathname === '/api/pipeline/companies/8/timeline' &&
-            c.url.searchParams.get('pageSize') === '25' &&
+            c.url.searchParams.get('pageSize') === '14' &&
             c.url.searchParams.get('page') === '1',
         ),
       ).toBe(true),

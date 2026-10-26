@@ -20,7 +20,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { NativeSelect } from '@/shared/ui/native-select';
 import { PageHeader } from '@/shared/ui/page-header';
-import { Pagination } from '@/shared/ui/pagination';
+import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS, Pagination } from '@/shared/ui/pagination';
 import { QueryError } from '@/shared/ui/query-error';
 import { SearchInput } from '@/shared/ui/search-input';
 import { TableSkeleton } from '@/shared/ui/table';
@@ -29,8 +29,7 @@ import { CreateContractDialog } from './contract-form-dialog';
 import { useContracts } from './queries';
 
 /** Filas por página (el API admite hasta 100). */
-export const CONTRACT_PAGE_SIZES = [10, 25, 50, 100] as const;
-const DEFAULT_PAGE_SIZE = 25;
+export const CONTRACT_PAGE_SIZES = DEFAULT_PAGE_SIZE_OPTIONS;
 
 const day = z
   .string()

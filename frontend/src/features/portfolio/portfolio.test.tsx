@@ -475,11 +475,11 @@ describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
     await mountApp('/cartera', 'ADMIN');
     const u = userEvent.setup();
     await screen.findByText('Ciclo #4');
-    expect(screen.getAllByTestId(/^exec-/)).toHaveLength(8);
-    expect(screen.getByText('1–8 de 12 ejecutivos')).toBeTruthy();
+    expect(screen.getAllByTestId(/^exec-/)).toHaveLength(7);
+    expect(screen.getByText('1–7 de 12 ejecutivos')).toBeTruthy();
 
     await u.click(screen.getAllByRole('button', { name: 'Página siguiente' })[0] as HTMLElement);
-    expect(screen.getAllByTestId(/^exec-/)).toHaveLength(4);
+    expect(screen.getAllByTestId(/^exec-/)).toHaveLength(5);
     expect(screen.getByTestId('exec-50')).toBeTruthy();
 
     await u.type(screen.getByRole('searchbox', { name: 'Buscar ejecutivo…' }), 'zoila rendon');
@@ -511,16 +511,16 @@ describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
     const u = userEvent.setup();
     await screen.findAllByText('Empresa 2 S.A.');
     const first = mocked.calls.find((c) => c.url.pathname === '/api/portfolio/assignments');
-    expect(first?.url.searchParams.get('pageSize')).toBe('25');
+    expect(first?.url.searchParams.get('pageSize')).toBe('7');
     expect(screen.getByText('1–3 de 3 empresas')).toBeTruthy();
 
-    await u.selectOptions(screen.getByLabelText('Filas por página'), '50');
+    await u.selectOptions(screen.getByLabelText('Filas por página'), '28');
     await waitFor(() =>
       expect(
         mocked?.calls.some(
           (c) =>
             c.url.pathname === '/api/portfolio/assignments' &&
-            c.url.searchParams.get('pageSize') === '50',
+            c.url.searchParams.get('pageSize') === '28',
         ),
       ).toBe(true),
     );
@@ -543,7 +543,7 @@ describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
   });
 
   test('reasignar: la lista de empresas seleccionadas se pagina y se puede buscar', async () => {
-    rows = Array.from({ length: 8 }, (_, i) => assignment(i + 1));
+    rows = Array.from({ length: 9 }, (_, i) => assignment(i + 1));
     mocked = mockFetch(baseHandler());
     await mountApp('/cartera', 'ADMIN');
     const u = userEvent.setup();
@@ -553,11 +553,11 @@ describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
         name: 'Seleccionar todas las de esta página',
       })[0] as HTMLElement,
     );
-    expect(screen.getByText('8 seleccionadas')).toBeTruthy();
+    expect(screen.getByText('9 seleccionadas')).toBeTruthy();
     await u.click(screen.getByRole('button', { name: /Reasignar a/ }));
     const dialog = await screen.findByRole('dialog');
     const list = within(dialog).getByRole('list', { name: 'Empresas seleccionadas' });
-    expect(within(list).getAllByRole('listitem')).toHaveLength(6);
+    expect(within(list).getAllByRole('listitem')).toHaveLength(7);
     await u.click(within(dialog).getByRole('button', { name: 'Página siguiente' }));
     expect(
       within(within(dialog).getByRole('list', { name: 'Empresas seleccionadas' })).getAllByRole(

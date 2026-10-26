@@ -26,7 +26,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { NativeSelect } from '@/shared/ui/native-select';
 import { PageHeader } from '@/shared/ui/page-header';
-import { Pagination } from '@/shared/ui/pagination';
+import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS, Pagination } from '@/shared/ui/pagination';
 import { QueryError } from '@/shared/ui/query-error';
 import { SearchInput } from '@/shared/ui/search-input';
 import { SearchableSelect } from '@/shared/ui/searchable-select';
@@ -44,8 +44,7 @@ const day = z
 const id = z.coerce.number().int().positive().optional().catch(undefined);
 
 /** Filas por página de la lista (el API admite hasta 100). */
-export const APPOINTMENT_PAGE_SIZES = [10, 20, 50, 100] as const;
-const DEFAULT_PAGE_SIZE = 20;
+export const APPOINTMENT_PAGE_SIZES = DEFAULT_PAGE_SIZE_OPTIONS;
 
 export const appointmentsSearchSchema = z.object({
   view: z.enum(['agenda', 'lista']).default('agenda').catch('agenda'),

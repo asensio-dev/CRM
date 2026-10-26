@@ -25,7 +25,7 @@ const item = (id: number, over: Partial<CompanyListItem> = {}): CompanyListItem 
 const page = (items: CompanyListItem[], p = 1, total = 103_000): Paginated<CompanyListItem> => ({
   items,
   page: p,
-  pageSize: 25,
+  pageSize: 7,
   total,
 });
 
@@ -45,15 +45,15 @@ describe('search params', () => {
     expect(toUrlSearch(s)).toEqual({ q: 'abc', status: ['CONTACTADO'], page: 3 });
     const qs = new URLSearchParams(toApiQueryString(s));
     expect(qs.getAll('status')).toEqual(['CONTACTADO']);
-    expect(qs.get('pageSize')).toBe('25');
+    expect(qs.get('pageSize')).toBe('7');
   });
 
   test('pageSize: acepta solo los tamaños ofrecidos y viaja a la URL y al API', () => {
-    expect(parseCompaniesSearch({ pageSize: '7' }).pageSize).toBe(25);
-    const s = parseCompaniesSearch({ pageSize: '50' });
-    expect(s.pageSize).toBe(50);
-    expect(toUrlSearch(s)).toEqual({ pageSize: 50 });
-    expect(new URLSearchParams(toApiQueryString(s)).get('pageSize')).toBe('50');
+    expect(parseCompaniesSearch({ pageSize: '25' }).pageSize).toBe(7);
+    const s = parseCompaniesSearch({ pageSize: '28' });
+    expect(s.pageSize).toBe(28);
+    expect(toUrlSearch(s)).toEqual({ pageSize: 28 });
+    expect(new URLSearchParams(toApiQueryString(s)).get('pageSize')).toBe('28');
   });
 });
 
@@ -62,17 +62,17 @@ describe('CompaniesPage', () => {
     mocked = mockFetch(({ url }) => {
       if (url.pathname === '/api/companies') {
         const p = Number(url.searchParams.get('page'));
-        return jsonResponse(page([item(p === 2 ? 26 : 1), item(2)], p));
+        return jsonResponse(page([item(p === 2 ? 8 : 1), item(2)], p));
       }
       return catalogs(url.pathname);
     });
     await mountApp('/empresas');
     expect(await screen.findAllByText('EMPRESA 2 S.A.')).toBeTruthy();
     expect(screen.getAllByText('COMERCIAL UNO').length).toBeGreaterThan(0);
-    expect(screen.getByText(/1–25 de 103\.?,?000|1–25 de/)).toBeTruthy();
+    expect(screen.getByText(/1–7 de 103\.?,?000|1–7 de/)).toBeTruthy();
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Página siguiente' }));
-    expect((await screen.findAllByText('EMPRESA 26 S.A.')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('EMPRESA 8 S.A.')).length).toBeGreaterThan(0);
     expect(mocked.calls.some((c) => c.url.searchParams.get('page') === '2')).toBe(true);
   });
 
@@ -88,20 +88,20 @@ describe('CompaniesPage', () => {
     const router = await mountApp('/empresas?page=3');
     await screen.findAllByText('EMPRESA 1 S.A.');
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText('Filas por página'), '50');
-    await waitFor(() => expect(router.state.location.search).toMatchObject({ pageSize: 50 }));
+    await user.selectOptions(screen.getByLabelText('Filas por página'), '28');
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ pageSize: 28 }));
     expect((router.state.location.search as { page?: number }).page).toBeUndefined();
     await waitFor(() =>
       expect(
         mocked.calls.some(
           (c) =>
             c.url.pathname === '/api/companies' &&
-            c.url.searchParams.get('pageSize') === '50' &&
+            c.url.searchParams.get('pageSize') === '28' &&
             c.url.searchParams.get('page') === '1',
         ),
       ).toBe(true),
     );
-    expect(await screen.findByText(/1–50 de/)).toBeTruthy();
+    expect(await screen.findByText(/1–28 de/)).toBeTruthy();
   });
 
   test('los filtros viven en la URL y la URL inicial se aplica a la consulta', async () => {

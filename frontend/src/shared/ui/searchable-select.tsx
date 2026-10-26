@@ -1,5 +1,6 @@
 import { useClientList } from '../hooks/use-client-list';
 import { Combobox, type ComboboxOption } from './combobox';
+import { DEFAULT_PAGE_SIZE } from './pagination';
 
 interface SearchableSelectProps {
   id?: string;
@@ -22,7 +23,11 @@ interface SearchableSelectProps {
 const optionText = (o: ComboboxOption) => o.name;
 
 /** Selector con buscador y resultados paginados sobre un catálogo local (ejecutivos, ciclos…). */
-export function SearchableSelect({ options, pageSize = 8, ...props }: SearchableSelectProps) {
+export function SearchableSelect({
+  options,
+  pageSize = DEFAULT_PAGE_SIZE,
+  ...props
+}: SearchableSelectProps) {
   const list = useClientList(options, { searchText: optionText, pageSize });
   return (
     <Combobox

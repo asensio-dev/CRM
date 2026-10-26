@@ -1,3 +1,4 @@
+import { DEFAULT_PAGE_SIZE } from '@/shared/ui/pagination';
 import { LIMIT_STEP, MAX_LIMIT } from './search';
 
 /**
@@ -8,7 +9,7 @@ import { LIMIT_STEP, MAX_LIMIT } from './search';
  * las páginas se cortan en cliente sobre las tarjetas ya cargadas y, cuando una página pide
  * tarjetas que aún no llegaron, se sube `limitPerColumn` (un único valor para todo el tablero).
  */
-export const COLUMN_PAGE_SIZE = 8;
+export const COLUMN_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 /** Tarjetas que se pueden llegar a mostrar en una columna (el API no pasa de `MAX_LIMIT`). */
 export const reachableCards = (count: number) => Math.min(count, MAX_LIMIT);

@@ -1,5 +1,6 @@
 import { normalizeSearchText } from '@axiom/contracts';
 import { useMemo, useState } from 'react';
+import { DEFAULT_PAGE_SIZE } from '../ui/pagination';
 
 interface UseClientListOptions<T> {
   /** Texto en el que se busca para cada elemento (se ignoran tildes y mayúsculas). */
@@ -27,7 +28,7 @@ export interface ClientList<T> {
  */
 export function useClientList<T>(
   items: readonly T[],
-  { searchText, pageSize: initialPageSize = 10 }: UseClientListOptions<T> = {},
+  { searchText, pageSize: initialPageSize = DEFAULT_PAGE_SIZE }: UseClientListOptions<T> = {},
 ): ClientList<T> {
   const [query, setQueryState] = useState('');
   const [page, setPageState] = useState(1);

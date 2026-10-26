@@ -5,10 +5,11 @@ import {
   type PipelineStatus,
 } from '@axiom/contracts';
 import { z } from 'zod';
+import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS } from '@/shared/ui/pagination';
 
-export const COMPANIES_PAGE_SIZE = 25;
+export const COMPANIES_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 /** Tamaños de página que se ofrecen en el listado (el API admite hasta 100). */
-export const COMPANIES_PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+export const COMPANIES_PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS;
 
 const intOrUndef = (min: number) =>
   z.preprocess(

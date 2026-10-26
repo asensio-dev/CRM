@@ -18,7 +18,7 @@ import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Label } from '@/shared/ui/label';
 import { PageHeader } from '@/shared/ui/page-header';
-import { Pagination } from '@/shared/ui/pagination';
+import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS, Pagination } from '@/shared/ui/pagination';
 import { QueryError } from '@/shared/ui/query-error';
 import { SearchInput } from '@/shared/ui/search-input';
 import { SearchableSelect } from '@/shared/ui/searchable-select';
@@ -36,8 +36,8 @@ import {
   tabCounts,
 } from './plan-utils';
 
-export const PLAN_PAGE_SIZE = 10;
-const PLAN_PAGE_SIZES = [10, 25, 50] as const;
+export const PLAN_PAGE_SIZE = DEFAULT_PAGE_SIZE;
+const PLAN_PAGE_SIZES = DEFAULT_PAGE_SIZE_OPTIONS;
 
 function WeekHeader({ data, ownerName }: { data: MyWeekDto; ownerName?: string }) {
   const week = data.week;
