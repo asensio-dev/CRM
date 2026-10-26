@@ -113,6 +113,17 @@ export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
     }
     return count;
   }
+  async deleteStale(cutoff: Date, limit: number) {
+    let count = 0;
+    for (const [hash, row] of this.rows) {
+      if (count >= limit) break;
+      if (row.expiresAt < cutoff || (row.revokedAt && row.revokedAt < cutoff)) {
+        this.rows.delete(hash);
+        count++;
+      }
+    }
+    return count;
+  }
   async revokeAllForUser(userId: number, now: Date) {
     for (const row of this.rows.values()) {
       if (row.userId === userId && !row.revokedAt) row.revokedAt = now;
@@ -130,6 +141,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     PORT: 0,
     CORS_ORIGIN: 'http://localhost',
     TZ: 'UTC',
+    SCHEDULER_ENABLED: true,
     ...overrides,
   };
 }
