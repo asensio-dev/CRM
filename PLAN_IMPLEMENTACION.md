@@ -6,7 +6,8 @@
 - **Ola 1 (núcleo): completada.** Empresas, importación, identidad, pipeline y shell del frontend.
 - **Ola 2 (rotación y gestión): completada.** Cartera y plan semanal, citas y contratos, analítica, frontend de empresas y kanban.
 - **Ola 3 (experiencia y calidad): completada.** Mi semana y Cartera, tablero, citas y contratos, pruebas de integración y E2E, revisión de seguridad (`docs/security-review.md`) y documentación.
-- **Ola 4 (cierre): pendiente.** Prueba de rendimiento en QA con datos reales, release `v1.0.0`.
+- **Ola 4 (cierre): en curso.** T4.1 hecha: entorno QA tipo producción ([docs/qa.md](docs/qa.md)), importación real y
+  prueba de carga con correcciones ([docs/rendimiento-qa.md](docs/rendimiento-qa.md)). Pendiente T4.2: release `v1.0.0`.
 
 > Detalle de cada decisión en [docs/adr/](docs/adr/); referencia de la API en [docs/api.md](docs/api.md).
 

@@ -19,6 +19,8 @@
     "db:import": "bun scripts/import-companies.ts",
     "db:seed:activity": "bun scripts/seed-activity.ts",
     "test:db": "bun scripts/test-db.ts",
+    "qa:setup": "bun scripts/qa-env.ts setup",
+    "qa:load": "bun scripts/qa-env.ts run -- bun scripts/load-test.ts",
     "test:integration": "bun scripts/test-integration.ts",
     "postinstall": "prisma generate",
     "arch": "depcruise src --config .dependency-cruiser.cjs"

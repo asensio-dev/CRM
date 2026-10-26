@@ -21,4 +21,19 @@ export default defineConfig({
     },
   },
   preview: { port: 5173 },
+  build: {
+    rollupOptions: {
+      output: {
+        // Dependencias estables en chunks propios: un despliegue que solo cambia código de la app
+        // no invalida su caché en el navegador (ver docs/rendimiento-qa.md).
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'vendor-react';
+          if (/[\\/]@tanstack[\\/]/.test(id)) return 'vendor-tanstack';
+          if (/[\\/]zod[\\/]/.test(id)) return 'vendor-zod';
+          return undefined;
+        },
+      },
+    },
+  },
 });

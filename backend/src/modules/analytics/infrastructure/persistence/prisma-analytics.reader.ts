@@ -6,6 +6,7 @@ import {
   SETTING_DEFAULTS,
 } from '@axiom/contracts';
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '../../../../generated/prisma/client';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import type {
   AnalyticsReader,
@@ -48,6 +49,16 @@ export class PrismaAnalyticsReader implements AnalyticsReader {
     return this.prisma.db.$queryRaw<Row[]>(q);
   }
 
+  /**
+   * Con `sectorId` el mejor plan depende del valor: PRIVADA NACIONAL es el 94 % de las empresas y
+   * otros sectores tienen decenas. Un plan en caché compilado para uno de ellos costaba hasta
+   * ~20 k lecturas con el otro (prueba de carga QA), así que esas consultas se recompilan
+   * (~1 ms; el tablero de analytics no es una ruta caliente).
+   */
+  private scoped(scope: AnalyticsScope, q: ReturnType<typeof sql.settingsSql>): Promise<Row[]> {
+    return this.query(scope.sectorId === undefined ? q : Prisma.sql`${q} OPTION (RECOMPILE)`);
+  }
+
   async settings(): Promise<AnalyticsSettings> {
     const rows = await this.query(sql.settingsSql(['WEEKLY_CONTACT_QUOTA']));
     const raw = rows.find((r) => r.key === 'WEEKLY_CONTACT_QUOTA')?.value;
@@ -72,30 +83,30 @@ export class PrismaAnalyticsReader implements AnalyticsReader {
   }
 
   async activeExecutives(scope: AnalyticsScope): Promise<ExecutiveRef[]> {
-    const rows = await this.query(sql.activeExecutivesSql(scope));
+    const rows = await this.scoped(scope, sql.activeExecutivesSql(scope));
     return rows.map((r) => ({ id: num(r.id), fullName: String(r.fullName) }));
   }
 
   async companiesByStatus(scope: AnalyticsScope): Promise<StatusCounts> {
-    return toStatusCounts(await this.query(sql.companiesByStatusSql(scope)));
+    return toStatusCounts(await this.scoped(scope, sql.companiesByStatusSql(scope)));
   }
 
   async reachedByStatus(scope: AnalyticsScope, period: UtcRange): Promise<StatusCounts> {
-    return toStatusCounts(await this.query(sql.reachedByStatusSql(scope, period)));
+    return toStatusCounts(await this.scoped(scope, sql.reachedByStatusSql(scope, period)));
   }
 
   async contactPairs(scope: AnalyticsScope, range: UtcRange): Promise<number> {
-    const [r] = await this.query(sql.contactPairsSql(scope, range));
+    const [r] = await this.scoped(scope, sql.contactPairsSql(scope, range));
     return num(r?.total);
   }
 
   async appointments(scope: AnalyticsScope, range: UtcRange): Promise<number> {
-    const [r] = await this.query(sql.appointmentsSql(scope, range));
+    const [r] = await this.scoped(scope, sql.appointmentsSql(scope, range));
     return num(r?.total);
   }
 
   async activeContracts(scope: AnalyticsScope): Promise<CurrencyTotal[]> {
-    const rows = await this.query(sql.activeContractsSql(scope));
+    const rows = await this.scoped(scope, sql.activeContractsSql(scope));
     return rows.map((r) => ({
       currency: String(r.currency),
       count: num(r.total),
@@ -110,9 +121,9 @@ export class PrismaAnalyticsReader implements AnalyticsReader {
     byExecutive: boolean,
   ): Promise<WeeklyActivityRows> {
     const [outcomes, companies, executives] = await Promise.all([
-      this.query(sql.weeklyOutcomesSql(scope, range, anchorDay)),
-      this.query(sql.weeklyCompaniesSql(scope, range, anchorDay)),
-      byExecutive ? this.query(sql.weeklyByExecutiveSql(scope, range, anchorDay)) : [],
+      this.scoped(scope, sql.weeklyOutcomesSql(scope, range, anchorDay)),
+      this.scoped(scope, sql.weeklyCompaniesSql(scope, range, anchorDay)),
+      byExecutive ? this.scoped(scope, sql.weeklyByExecutiveSql(scope, range, anchorDay)) : [],
     ]);
     const known = INTERACTION_OUTCOMES as readonly string[];
     return {
@@ -141,12 +152,12 @@ export class PrismaAnalyticsReader implements AnalyticsReader {
   ): Promise<ExecutiveMetricRows> {
     const [assigned, contactedWeek, contactedCycle, advances, appointments, contracts] =
       await Promise.all([
-        this.query(sql.assignedByUserSql(scope)),
-        this.query(sql.contactedByUserSql(scope, week)),
-        cycle ? this.query(sql.contactedInCycleByUserSql(scope, cycle)) : [],
-        this.query(sql.advancesByUserSql(scope, week)),
-        this.query(sql.appointmentsByUserSql(scope, week)),
-        this.query(sql.contractsByUserSql(scope)),
+        this.scoped(scope, sql.assignedByUserSql(scope)),
+        this.scoped(scope, sql.contactedByUserSql(scope, week)),
+        cycle ? this.scoped(scope, sql.contactedInCycleByUserSql(scope, cycle)) : [],
+        this.scoped(scope, sql.advancesByUserSql(scope, week)),
+        this.scoped(scope, sql.appointmentsByUserSql(scope, week)),
+        this.scoped(scope, sql.contractsByUserSql(scope)),
       ]);
     return {
       assigned: toMap(assigned),

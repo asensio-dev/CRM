@@ -1,6 +1,42 @@
 import { describe, expect, test } from 'bun:test';
 import { buildCompanySpecification } from '../../domain';
-import { toPrismaCompanyWhere } from './prisma-company-where';
+import { hasTextFilter, toPrismaCompanyWhere, toSqlCompanyWhere } from './prisma-company-where';
+
+describe('toSqlCompanyWhere (búsqueda por texto en una pasada)', () => {
+  test('every value is a parameter, never concatenated; LIKE wildcards escaped', () => {
+    const evil = "50%_x'; DROP TABLE companies; --";
+    const sql = toSqlCompanyWhere(
+      buildCompanySpecification({
+        q: evil,
+        status: ['CONTACTADO', 'SIN_RESPUESTA'],
+        sectorId: 2,
+        activityId: 7,
+        minEmployees: 5,
+        maxEmployees: 50,
+        hasPhone: true,
+      }),
+    );
+    expect(sql.sql).not.toContain('DROP');
+    expect(sql.sql).toContain("ESCAPE '!'");
+    expect(sql.sql).toContain('c.[phone] IS NOT NULL');
+    expect(sql.values).toEqual([
+      `%50!%!_X'; DROP TABLE COMPANIES; --%`,
+      'CONTACTADO',
+      'SIN_RESPUESTA',
+      2,
+      7,
+      5,
+      50,
+    ]);
+  });
+
+  test('detects text filters (alone or inside AND)', () => {
+    expect(hasTextFilter(buildCompanySpecification({}))).toBe(false);
+    expect(hasTextFilter(buildCompanySpecification({ sectorId: 1 }))).toBe(false);
+    expect(hasTextFilter(buildCompanySpecification({ q: 'acme' }))).toBe(true);
+    expect(hasTextFilter(buildCompanySpecification({ q: 'acme', sectorId: 1 }))).toBe(true);
+  });
+});
 
 describe('toPrismaCompanyWhere', () => {
   test('empty filters produce an empty where', () => {

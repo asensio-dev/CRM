@@ -120,9 +120,12 @@ model Company {
   @@index([status])
   // Los 3 siguientes se crean a mano en la migración search_and_board_indexes
   // (INCLUDE y collation BIN2 no se modelan en Prisma); se declaran para que no haya drift.
+  // La migración qa_performance_indexes recrea searchText, board, status_legalName y
+  // sectorId_status con columnas INCLUDE y crea status_employeeCount (ver docs/rendimiento-qa.md).
   @@index([searchText], map: "companies_searchText_idx")
   @@index([status, lastContactAt, employeeCount(sort: Desc), id], map: "companies_board_idx")
   @@index([status, legalName], map: "companies_status_legalName_idx")
+  @@index([status, employeeCount], map: "companies_status_employeeCount_idx")
   @@index([legalName])
   @@index([tradeName])
   @@index([sectorId, activityId])
@@ -170,6 +173,8 @@ model Interaction {
   @@index([userId, occurredAt])
   @@index([userId, companyId, occurredAt])
   @@index([nextFollowUpAt])
+  // INCLUDE (userId, companyId, outcome) en la migración qa_performance_indexes
+  @@index([occurredAt], map: "interactions_occurredAt_idx")
   @@map("interactions")
 }
 
@@ -187,6 +192,8 @@ model StatusHistory {
 
   @@index([companyId, changedAt])
   @@index([toStatus, changedAt])
+  // INCLUDE (companyId, fromStatus, toStatus) en la migración qa_performance_indexes
+  @@index([userId, changedAt], map: "status_history_userId_changedAt_idx")
   @@map("status_history")
 }
 
@@ -221,6 +228,7 @@ model PortfolioAssignment {
   cycle   RotationCycle @relation(fields: [cycleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   // Índice único filtrado "una asignación activa por empresa" creado en SQL en la migración inicial
+  // INCLUDE (companyId, cycleId, assignedAt) desde la migración qa_performance_indexes
   @@index([userId, releasedAt])
   @@index([companyId])
   @@map("portfolio_assignments")

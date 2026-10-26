@@ -73,20 +73,25 @@ export function buildBoardSql(query: BoardQuery): Prisma.Sql {
     ORDER BY s.[status]`;
   }
 
+  // La ventana solo usa columnas del índice companies_searchText_idx (INCLUDE status, lastContactAt,
+  // employeeCount, sectorId, activityId): recorre el índice estrecho sin buscar en la tabla y solo
+  // las ≤ 8 × limitPerColumn tarjetas ganadoras se completan por clave primaria. LOOP fija ese
+  // orden (sin la pista SQL Server elegía un hash join con un segundo recorrido del índice).
   const where = Prisma.sql`WHERE ${Prisma.join(filters, ' AND ')}`;
   return Prisma.sql`
     WITH ranked AS (
-      SELECT c.[id], c.[legalName], c.[tradeName], c.[phone], c.[employeeCount],
-             c.[lastContactAt], c.[status],
+      SELECT c.[id], c.[status],
              ROW_NUMBER() OVER (PARTITION BY c.[status] ORDER BY ${CARD_ORDER}) AS rn,
              COUNT(*) OVER (PARTITION BY c.[status]) AS total
       FROM [dbo].[companies] c
       ${where}
     )
-    SELECT [id], [legalName], [tradeName], [phone], [employeeCount], [lastContactAt], [status], [total]
-    FROM ranked
-    WHERE rn <= ${query.limitPerColumn}
-    ORDER BY [status], rn`;
+    SELECT c.[id], c.[legalName], c.[tradeName], c.[phone], c.[employeeCount], c.[lastContactAt],
+           r.[status], r.[total]
+    FROM ranked r
+    INNER LOOP JOIN [dbo].[companies] c ON c.[id] = r.[id]
+    WHERE r.[rn] <= ${query.limitPerColumn}
+    ORDER BY r.[status], r.[rn]`;
 }
 
 /** Agrupa las filas en columnas, en el orden de PIPELINE_STATUSES y con columnas vacías incluidas. */

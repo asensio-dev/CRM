@@ -8,25 +8,38 @@ import {
   redirect,
 } from '@tanstack/react-router';
 import { Compass } from 'lucide-react';
-import type { ComponentType } from 'react';
+import { type ComponentType, lazy, type ReactElement, Suspense } from 'react';
 import { z } from 'zod';
-import { AppointmentsPage } from '@/features/appointments';
 import { redirectIfAuthenticated, requireAuth, requireRole } from '@/features/auth/guards';
 import { LoginPage } from '@/features/auth/login-page';
-import { CompaniesPage } from '@/features/companies';
-import { CompanyDetailPage } from '@/features/company-detail/company-detail-page';
-import { ContractsPage } from '@/features/contracts';
-import { DashboardPage } from '@/features/dashboard';
-import { ImportPage } from '@/features/import';
-import { MyWeekPage } from '@/features/my-week';
-import { PipelinePage } from '@/features/pipeline';
-import { PortfolioPage } from '@/features/portfolio';
-import { UsersPage } from '@/features/users';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { PlaceholderPage } from '@/shared/ui/placeholder-page';
+import { Skeleton } from '@/shared/ui/skeleton';
 import { AppLayout } from './layout/app-layout';
 import { NAV_ITEMS, type NavItem } from './navigation';
+
+/**
+ * Página cargada bajo demanda (chunk propio por pantalla): el bundle inicial solo lleva el
+ * layout, el login y lo compartido. Antes era un único chunk de ~970 kB (ver docs/rendimiento-qa.md).
+ */
+const lazyPage = (load: () => Promise<ComponentType>): ComponentType =>
+  lazy(async () => ({ default: await load() }));
+
+function LazyRoute({ page: Page }: { page: ComponentType }): ReactElement {
+  return (
+    <Suspense
+      fallback={
+        <div role="status" aria-busy="true" aria-label="Cargando página" className="space-y-4">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-72" />
+        </div>
+      }
+    >
+      <Page />
+    </Suspense>
+  );
+}
 
 const rootRoute = createRootRoute({
   component: Outlet,
@@ -87,16 +100,20 @@ const PAGES: Record<NavItem['to'], { description: string; wave: 2 | 3 }> = {
  * las que faltan muestran el placeholder de su ola.
  */
 const PAGE_COMPONENTS: Partial<Record<NavItem['to'], ComponentType>> = {
-  '/mi-semana': MyWeekPage,
-  '/cartera': PortfolioPage,
-  '/pipeline': PipelinePage,
-  '/tablero': DashboardPage,
-  '/citas': AppointmentsPage,
-  '/contratos': ContractsPage,
-  '/empresas': CompaniesPage,
-  '/importacion': ImportPage,
-  '/usuarios': UsersPage,
+  '/mi-semana': lazyPage(() => import('@/features/my-week').then((m) => m.MyWeekPage)),
+  '/cartera': lazyPage(() => import('@/features/portfolio').then((m) => m.PortfolioPage)),
+  '/pipeline': lazyPage(() => import('@/features/pipeline').then((m) => m.PipelinePage)),
+  '/tablero': lazyPage(() => import('@/features/dashboard').then((m) => m.DashboardPage)),
+  '/citas': lazyPage(() => import('@/features/appointments').then((m) => m.AppointmentsPage)),
+  '/contratos': lazyPage(() => import('@/features/contracts').then((m) => m.ContractsPage)),
+  '/empresas': lazyPage(() => import('@/features/companies').then((m) => m.CompaniesPage)),
+  '/importacion': lazyPage(() => import('@/features/import').then((m) => m.ImportPage)),
+  '/usuarios': lazyPage(() => import('@/features/users').then((m) => m.UsersPage)),
 };
+
+const CompanyDetailPage = lazyPage(() =>
+  import('@/features/company-detail/company-detail-page').then((m) => m.CompanyDetailPage),
+);
 
 const pageRoutes = NAV_ITEMS.map((item) => {
   const page = PAGES[item.to];
@@ -106,7 +123,7 @@ const pageRoutes = NAV_ITEMS.map((item) => {
     path: item.to,
     beforeLoad: item.roles ? () => requireRole(item.roles ?? []) : undefined,
     component: Page
-      ? () => <Page />
+      ? () => <LazyRoute page={Page} />
       : () => (
           <PlaceholderPage
             title={item.label}
@@ -126,7 +143,7 @@ export const companyDetailRoute = createRoute({
     parse: ({ companyId }) => ({ companyId: z.coerce.number().int().positive().parse(companyId) }),
     stringify: ({ companyId }) => ({ companyId: String(companyId) }),
   },
-  component: CompanyDetailPage,
+  component: () => <LazyRoute page={CompanyDetailPage} />,
 });
 
 const routeTree = rootRoute.addChildren([
