@@ -57,6 +57,12 @@ colors:
   dark-fill-soft: "#2c4a9a"
   dark-wash: "#121c36"
 typography:
+  brand-display:
+    fontFamily: "Onest Variable, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "3.6rem"
+    fontWeight: 700
+    lineHeight: 1
+    letterSpacing: "0.16em"
   headline:
     fontFamily: "Onest Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
     fontSize: "1.65rem"
@@ -282,6 +288,8 @@ A cool, low-chroma blue-grey neutral family carrying one saturated Axiom blue; o
 - **Label** (500, 0.75rem; 13px for KPI labels): table headers, badges, field hints, pagination counts, sidebar group names. Sentence case, no tracking.
 
 The wordmark "AXIOM" in the rail (600, 15px, 0.08em tracking) is part of the logo lockup, not a type role.
+
+- **Brand Display** (700, 3.6rem desktop / 2.6rem mobile, line-height 1, 0.16em tracking with matching left padding to re-center it): the white wordmark on the login brand panel only. "CRM" sits under it at 0.875rem, 500, 0.3em tracking. Never used inside the app shell.
 
 ### Named Rules
 **The Tabular Rule.** Every number a user compares (table cells, counts, ranges, pagination summaries, dates in strips, KPI values, version) is set in tabular numerals; tables inherit it globally and standalone figures add it explicitly.

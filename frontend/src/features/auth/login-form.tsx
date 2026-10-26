@@ -1,12 +1,15 @@
 import { type LoginRequest, LoginRequestSchema } from '@axiom/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, LockKeyhole, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { HttpError } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+
+const FIELD_ICON =
+  'pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground';
 
 interface LoginFormProps {
   onSubmit: (values: LoginRequest) => Promise<void>;
@@ -23,6 +26,7 @@ function errorMessage(err: unknown): string {
 
 export function LoginForm({ onSubmit }: LoginFormProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -42,18 +46,22 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
   });
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-4">
+    <form onSubmit={submit} noValidate className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="email">Correo electrónico</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          placeholder="nombre@empresa.com"
-          aria-invalid={!!errors.email}
-          aria-describedby={errors.email ? 'email-error' : undefined}
-          {...register('email')}
-        />
+        <div className="relative">
+          <Mail className={FIELD_ICON} aria-hidden="true" />
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="nombre@empresa.com"
+            className="h-11 pl-10"
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            {...register('email')}
+          />
+        </div>
         {errors.email && (
           <p id="email-error" role="alert" className="text-xs text-destructive">
             Ingresa un correo electrónico válido.
@@ -62,14 +70,32 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Contraseña</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          aria-invalid={!!errors.password}
-          aria-describedby={errors.password ? 'password-error' : undefined}
-          {...register('password')}
-        />
+        <div className="relative">
+          <LockKeyhole className={FIELD_ICON} aria-hidden="true" />
+          <Input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
+            placeholder="••••••••"
+            className="h-11 pl-10 pr-11"
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? 'password-error' : undefined}
+            {...register('password')}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            aria-pressed={showPassword}
+            className="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {showPassword ? (
+              <EyeOff className="size-4" aria-hidden="true" />
+            ) : (
+              <Eye className="size-4" aria-hidden="true" />
+            )}
+          </button>
+        </div>
         {errors.password && (
           <p id="password-error" role="alert" className="text-xs text-destructive">
             La contraseña debe tener al menos 8 caracteres.
@@ -77,11 +103,11 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
         )}
       </div>
       {serverError && (
-        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {serverError}
         </p>
       )}
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button type="submit" size="lg" className="mt-2 h-11 w-full" disabled={isSubmitting}>
         {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
         Iniciar sesión
       </Button>
