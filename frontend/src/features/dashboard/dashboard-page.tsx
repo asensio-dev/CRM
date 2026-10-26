@@ -336,7 +336,7 @@ export function DashboardPage() {
       )}
 
       {tab === 'pipeline' && (
-        <TabPanel idBase={tabsId} value="pipeline" className="max-w-4xl">
+        <TabPanel idBase={tabsId} value="pipeline">
           {funnel.isPending ? (
             <ListSkeleton label="Cargando embudo" rows={8} />
           ) : funnel.isError ? (

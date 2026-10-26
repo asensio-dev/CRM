@@ -169,15 +169,20 @@ describe('FunnelCard', () => {
       'CONTRATO_ACTIVO',
     ]);
     const { container } = render(<FunnelCard funnel={funnel} />);
+    // el pool se resume en una línea; las etapas de trabajo van en orden del pipeline
     const items = [...container.querySelectorAll('li[data-stage]')].map((li) =>
       li.getAttribute('data-stage'),
     );
-    expect(items).toEqual(['POR_CONTACTAR', 'CONTACTADO', 'CON_RESPUESTA', 'CONTRATO_ACTIVO']);
+    expect(items).toEqual(['CONTACTADO', 'CON_RESPUESTA', 'CONTRATO_ACTIVO']);
+    const pool = container.querySelector('[data-stage="POR_CONTACTAR"]');
+    expect(pool?.tagName).toBe('P');
+    expect(pool?.textContent).toContain('siguen por contactar');
+    expect(container.querySelector('[data-bar="POR_CONTACTAR"]')).toBeNull();
     expect(container.querySelector('[data-bar="CONTACTADO"]')?.className).toContain('bg-sky-500');
     expect(container.querySelector('[data-bar="CONTRATO_ACTIVO"]')?.className).toContain(
       'bg-emerald-500',
     );
-    expect(screen.getByText('40 % de la etapa previa')).toBeTruthy();
+    expect(container.textContent).toContain('40 % de la etapa previa');
   });
 
   test('estado vacío si nadie alcanzó ninguna etapa', () => {

@@ -68,6 +68,11 @@ async function mount(path = '/pipeline') {
   return router;
 }
 
+/** Muestra "Por contactar" y "Descartado", que el tablero oculta por defecto. */
+async function showAll(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('switch', { name: /Por contactar y descartadas/ }));
+}
+
 function routes(extra: Parameters<typeof mockApi>[0] = {}) {
   return mockApi({
     'GET /api/pipeline/board': ({ url }) => boardFor(url),
@@ -83,15 +88,33 @@ describe('PipelinePage', () => {
     useSessionStore.setState({ status: 'anonymous', user: null });
   });
 
+  test('por defecto solo las 6 etapas de trabajo; el interruptor muestra el pool y las descartadas', async () => {
+    routes();
+    await mount();
+    await screen.findByRole('region', { name: /Contactado, 2 empresas/ });
+    expect(document.querySelectorAll('section[data-status]')).toHaveLength(6);
+    expect(screen.queryByRole('region', { name: /Por contactar/ })).toBeNull();
+    expect(screen.queryByRole('region', { name: /Descartado/ })).toBeNull();
+    // el interruptor dice cuántas empresas esconde (1234 por contactar + 7 descartadas)
+    const toggle = screen.getByRole('switch', { name: /Por contactar y descartadas/ });
+    expect(toggle.closest('label')?.textContent).toContain('1,241');
+    expect(document.querySelector('p[aria-live]')?.textContent).toBe('2 en seguimiento');
+
+    await userEvent.setup().click(toggle);
+    expect(document.querySelectorAll('section[data-status]')).toHaveLength(8);
+    expect(screen.getByRole('region', { name: /Por contactar, 1234 empresas/ })).toBeTruthy();
+  });
+
   test('muestra 8 columnas con su total y las tarjetas', async () => {
     routes();
     await mount();
+    await showAll(userEvent.setup());
     const col = await screen.findByRole('region', { name: /Por contactar, 1234 empresas/ });
     expect(within(col).getByText('Alfa S.A.')).toBeTruthy();
-    expect(within(col).getByText('Alfa Comercial')).toBeTruthy();
-    expect(within(col).getByRole('link', { name: '22223333' }).getAttribute('href')).toBe(
-      'tel:22223333',
-    );
+    // tarjeta mínima: nombre y último contacto, sin nombre comercial ni teléfono
+    expect(within(col).queryByText('Alfa Comercial')).toBeNull();
+    expect(within(col).queryByRole('link', { name: '22223333' })).toBeNull();
+    expect(within(col).getAllByText('Sin contacto').length).toBeGreaterThan(0);
     expect(document.querySelectorAll('section[data-status]')).toHaveLength(8);
     expect(screen.getByRole('region', { name: /Descartado, 7 empresas/ })).toBeTruthy();
     // 7 tarjetas por página; las columnas que caben en una página no muestran paginación
@@ -104,8 +127,9 @@ describe('PipelinePage', () => {
   test('cada columna pagina por separado y pide más tarjetas al llegar al final', async () => {
     const api = routes();
     const router = await mount();
-    const col = await screen.findByRole('region', { name: /Por contactar, 1234 empresas/ });
     const user = userEvent.setup();
+    await showAll(user);
+    const col = await screen.findByRole('region', { name: /Por contactar, 1234 empresas/ });
 
     await user.click(within(col).getByRole('button', { name: 'Página siguiente' }));
     expect(within(col).getByText('2 / 15')).toBeTruthy();
@@ -131,8 +155,9 @@ describe('PipelinePage', () => {
   test('el buscador filtra todo el tablero y vuelve a la primera página', async () => {
     const api = routes();
     const router = await mount();
-    const col = await screen.findByRole('region', { name: /Por contactar, 1234 empresas/ });
     const user = userEvent.setup();
+    await showAll(user);
+    const col = await screen.findByRole('region', { name: /Por contactar, 1234 empresas/ });
     await user.click(within(col).getByRole('button', { name: 'Página siguiente' }));
     expect(within(col).getByText('2 / 15')).toBeTruthy();
 
@@ -154,6 +179,7 @@ describe('PipelinePage', () => {
   test('los filtros viajan a la URL y a la consulta', async () => {
     const api = routes();
     await mount('/pipeline?sectorId=4&q=alfa');
+    await showAll(userEvent.setup());
     await screen.findByText('Alfa S.A.');
     const first = api.calls.find((c) => c.key === 'GET /api/pipeline/board');
     expect(first?.url.searchParams.get('sectorId')).toBe('4');
@@ -170,6 +196,7 @@ describe('PipelinePage', () => {
     });
     await mount();
     const user = userEvent.setup();
+    await showAll(user);
     await user.click(await screen.findByRole('button', { name: /Mover a… Alfa S.A./ }));
     const items = await screen.findAllByRole('menuitem');
     expect(items.map((i) => i.textContent)).toEqual(['Contactado', 'Descartado']);

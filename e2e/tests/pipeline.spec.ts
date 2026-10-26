@@ -17,6 +17,8 @@ test.describe('pipeline (kanban)', () => {
       .getByRole('link', { name: 'Pipeline' })
       .click();
     await expect(page.getByRole('heading', { name: 'Pipeline', level: 1 })).toBeVisible();
+    // El tablero oculta por defecto "Por contactar" y "Descartado"; estas pruebas los usan.
+    await page.getByRole('switch', { name: /Por contactar y descartadas/ }).check();
     await expect(
       page.locator('section[data-status="POR_CONTACTAR"] [data-testid^="card-"]').first(),
     ).toBeVisible();

@@ -124,6 +124,20 @@
   html.dark {
     color-scheme: dark;
   }
+  /*
+   * Escala en pantallas grandes: todo está en rem, así que subir la base agranda texto,
+   * espaciados, tarjetas y el ancho máximo del contenido a la vez, sin tocar móvil ni portátil.
+   */
+  @media (min-width: 1536px) {
+    html {
+      font-size: 106.25%;
+    }
+  }
+  @media (min-width: 1920px) {
+    html {
+      font-size: 112.5%;
+    }
+  }
   body {
     background: var(--background);
     color: var(--foreground);

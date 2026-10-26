@@ -296,18 +296,20 @@ The wordmark "AXIOM" in the rail (600, 15px, 0.08em tracking) is part of the log
 
 ## Layout
 
-The shell is a full-height flex row: a 256px left rail (72px collapsed, icons only, labels kept for screen readers), and a column holding a 64px topbar and the scrolling main area. Main carries the Morning Wash and pads 16px on mobile, 24px from 640px, 32px from 1024px; content is centered with a 90rem maximum width.
+The shell is a full-height flex row: a 256px left rail (72px collapsed, icons only, labels kept for screen readers), and a column holding a 64px topbar and the scrolling main area. Main carries the Morning Wash and pads 16px on mobile, 24px from 640px, 32px from 1024px; content is centered with a 90rem maximum width. On large screens the root font size steps up (17px from 1536px, 18px from 1920px); since everything is in rem, type, spacing, cards and the content width all grow together, while phones and laptops keep 16px.
 
 Below 768px the rail becomes a 288px drawer over a 35% scrim, opened from a menu button in the topbar, and data tables switch to stacked row cards when the screen provides them.
 
 Each screen opens with a page header (title and description left, primary action right, bottom-aligned, 28px below), then its data. List screens are one card: a filter row (search first, then selects; 16px padding, 12px gap, hairline below), then the table or empty state, then a full pagination bar in a hairline-topped footer. Dashboard and portfolio compose cards in grids with 16px gaps and 24px between sections; stat tiles run 1, 2 and then 3 or 4 columns at 640 and 1280px.
 
+Screens with several distinct jobs (Cartera, Tablero) split them into underline tabs under the page header instead of stacking every section; the chosen tab is remembered for the browser session. The Pipeline board shows only the six working stages as fluid columns (minimum 11rem, about 80% of the width on phones with snap scrolling); a switch reveals "Por contactar" and "Descartado", and cards carry only the company name and last contact.
+
 The topbar holds the section path (group / page), a today's-date chip from 1024px, and the user menu with initials avatar.
 
 ### Named Rules
-**The Paged-Everything Rule.** No view renders an unbounded list. Server-paged tables use the full Pagination (summary, page numbers, rows-per-page of 10/25/50/100); narrow places (kanban columns, combobox popovers) use the compact variant ("2 / 5"). When the API returns a complete list (kanban column cards, weekly plan, branches, executive catalogs), paging and search happen client-side through the shared client-list hook, which ignores accents and case and returns to page 1 when the query changes.
+**The Paged-Everything Rule.** No view renders an unbounded list. Server-paged tables use the full Pagination (summary, page numbers, rows-per-page of 7/14/28/56, 7 by default); narrow places (kanban columns, combobox popovers) use the compact variant ("2 / 5"). When the API returns a complete list (kanban column cards, weekly plan, branches, executive catalogs), paging and search happen client-side through the shared client-list hook, which ignores accents and case and returns to page 1 when the query changes.
 
-**The Find-It-Anywhere Rule.** Every list and catalog has a search field. Selects with a long or growing option set (executives, sectors, cycles) use the searchable select (combobox with search and compact paging, 8 per page); short fixed enums (role, status, currency, mode) stay native selects. Where an endpoint has no search parameter, the search filters only the loaded page, and the screen says so: a muted note under the filter row ("La búsqueda filtra ... de esta página") or a "Filtrar esta página" placeholder with a "Nada en esta página coincide" empty message.
+**The Find-It-Anywhere Rule.** Every list and catalog has a search field. Selects with a long or growing option set (executives, sectors, cycles) use the searchable select (combobox with search and compact paging, 7 per page); short fixed enums (role, status, currency, mode) stay native selects. Where an endpoint has no search parameter, the search filters only the loaded page, and the screen says so: a muted note under the filter row ("La búsqueda filtra ... de esta página") or a "Filtrar esta página" placeholder with a "Nada en esta página coincide" empty message.
 
 ## Elevation & Depth
 

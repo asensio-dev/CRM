@@ -1,55 +1,35 @@
 import type { BoardCardDto } from '@axiom/contracts';
 import { useDraggable } from '@dnd-kit/core';
 import { Link } from '@tanstack/react-router';
-import { Clock, MoreHorizontal, Phone, Users } from 'lucide-react';
+import { Clock, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { formatAbsolute, formatRelative } from '@/shared/lib/format-date';
 import { Button } from '@/shared/ui/button';
 import { ChangeStatusMenu } from './change-status-menu';
 
-const nf = new Intl.NumberFormat('es-NI');
-
+/** Lo mínimo para decidir: quién es y cuándo se habló por última vez. El resto, en la ficha. */
 export function CardBody({ card }: { card: BoardCardDto }) {
-  const showTradeName = card.tradeName && card.tradeName !== card.legalName;
   return (
     <>
-      <div className="min-w-0 pr-7">
-        <Link
-          to="/empresas/$companyId"
-          params={{ companyId: card.id }}
-          className="line-clamp-2 text-sm font-medium leading-snug text-foreground after:absolute after:inset-0 after:rounded-lg hover:text-primary focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
-        >
-          {card.legalName}
-        </Link>
-        {showTradeName && (
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{card.tradeName}</p>
-        )}
-      </div>
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        {card.phone && (
-          <a
-            href={`tel:${card.phone}`}
-            className="relative z-10 inline-flex items-center gap-1 rounded-sm tabular-nums hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Phone className="size-3" aria-hidden="true" />
-            {card.phone}
-          </a>
-        )}
-        <span className="inline-flex items-center gap-1 tabular-nums" title="Empleados">
-          <Users className="size-3" aria-hidden="true" />
-          {nf.format(card.employeeCount)}
-        </span>
-      </div>
-      <p
-        className="mt-2 flex items-center gap-1 border-t pt-2 text-xs text-muted-foreground"
-        title={card.lastContactAt ? formatAbsolute(card.lastContactAt) : undefined}
+      <Link
+        to="/empresas/$companyId"
+        params={{ companyId: card.id }}
+        className="line-clamp-2 pr-7 text-sm font-medium leading-snug text-foreground after:absolute after:inset-0 after:rounded-lg hover:text-primary focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
       >
-        <Clock className="size-3" aria-hidden="true" />
+        {card.legalName}
+      </Link>
+      <p
+        className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground"
+        title={
+          card.lastContactAt ? `Último contacto: ${formatAbsolute(card.lastContactAt)}` : undefined
+        }
+      >
+        <Clock className="size-3 shrink-0" aria-hidden="true" />
         {card.lastContactAt ? (
-          <>
-            Último contacto{' '}
-            <span className="text-foreground">{formatRelative(card.lastContactAt)}</span>
-          </>
+          <span className="truncate">
+            <span className="sr-only">Último contacto </span>
+            {formatRelative(card.lastContactAt)}
+          </span>
         ) : (
           'Sin contacto'
         )}
@@ -59,7 +39,7 @@ export function CardBody({ card }: { card: BoardCardDto }) {
 }
 
 const cardClass =
-  'relative rounded-lg border bg-card p-3 text-card-foreground shadow-xs transition-[box-shadow,border-color] hover:border-input hover:shadow-sm';
+  'relative rounded-lg border bg-card px-3 py-2.5 text-card-foreground shadow-xs transition-[box-shadow,border-color] hover:border-input hover:shadow-sm';
 
 /** Tarjeta arrastrable con menú "Mover a…" (alternativa accesible por teclado). */
 export function BoardCard({ card }: { card: BoardCardDto }) {
@@ -104,7 +84,7 @@ export function BoardCard({ card }: { card: BoardCardDto }) {
 /** Copia visual que sigue al puntero durante el arrastre. */
 export function CardOverlay({ card }: { card: BoardCardDto }) {
   return (
-    <div className={cn(cardClass, 'w-68 rotate-1 cursor-grabbing shadow-lg')}>
+    <div className={cn(cardClass, 'w-64 rotate-1 cursor-grabbing shadow-lg')}>
       <CardBody card={card} />
     </div>
   );
