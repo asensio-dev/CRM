@@ -4,6 +4,7 @@ import { Global, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { CLOCK, EVENT_BUS, UNIT_OF_WORK } from '../../../../shared/application';
 import { DomainError } from '../../../../shared/domain';
+import { APP_CONFIG } from '../../../../shared/infrastructure/config/env';
 import {
   ChangeCompanyStatusUseCase,
   CompanyStatusChanged,
@@ -64,8 +65,9 @@ describe('PortfolioModule + PipelineModule wiring', () => {
         { provide: UNIT_OF_WORK, useValue: new FakeUnitOfWork(pipelineRepo) },
         { provide: EVENT_BUS, useValue: { publishAll: async () => {} } },
         { provide: CLOCK, useValue: new MutableClock(new Date('2026-10-26T12:00:00Z')) },
+        { provide: APP_CONFIG, useValue: { SCHEDULER_ENABLED: false } },
       ],
-      exports: [UNIT_OF_WORK, EVENT_BUS, CLOCK],
+      exports: [UNIT_OF_WORK, EVENT_BUS, CLOCK, APP_CONFIG],
     })
     class TestSharedModule {}
 
