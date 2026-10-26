@@ -23,7 +23,7 @@ export function Tooltip({
             side={side}
             sideOffset={4}
             className={cn(
-              'z-50 max-w-xs rounded-md bg-foreground px-2.5 py-1.5 text-xs text-background shadow-md',
+              'z-50 max-w-xs rounded-lg bg-foreground px-2.5 py-1.5 text-xs text-background shadow-md',
               className,
             )}
           >

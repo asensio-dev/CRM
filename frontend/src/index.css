@@ -1,51 +1,73 @@
 @import "tailwindcss";
+@import "@fontsource-variable/onest";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Mundo visual: claro, frío y luminoso. Azul Axiom (el destello del logo) como único acento;
+ * los gráficos y barras de avance usan la "pista fantasma": relleno azul que se desvanece
+ * sobre una pista pálida de altura completa.
+ */
 :root {
-  --background: oklch(0.985 0.002 250);
-  --foreground: oklch(0.21 0.02 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.02 260);
-  --muted: oklch(0.96 0.005 250);
-  --muted-foreground: oklch(0.5 0.02 255);
-  --border: oklch(0.91 0.008 250);
-  --input: oklch(0.88 0.01 250);
-  --ring: oklch(0.55 0.2 265);
-  --primary: oklch(0.5 0.2 265);
-  --primary-foreground: oklch(0.99 0 0);
-  --accent: oklch(0.95 0.02 265);
-  --accent-foreground: oklch(0.35 0.15 265);
-  --destructive: oklch(0.577 0.22 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  --sidebar: oklch(0.2 0.03 265);
-  --sidebar-foreground: oklch(0.9 0.01 260);
-  --sidebar-muted: oklch(0.7 0.02 260);
-  --sidebar-accent: oklch(0.3 0.05 265);
-  --sidebar-border: oklch(0.3 0.03 265);
+  --background: #f4f6fa;
+  --foreground: #101828;
+  --card: #ffffff;
+  --card-foreground: #101828;
+  --muted: #eef1f6;
+  --muted-foreground: #5a6478;
+  --border: #e4e8f0;
+  --input: #d6dce7;
+  --ring: #2a62f2;
+  --primary: #2a62f2;
+  --primary-foreground: #ffffff;
+  --accent: #ecf2ff;
+  --accent-foreground: #1d4ed0;
+  --destructive: #d93a40;
+  --destructive-foreground: #ffffff;
+  --success: #12875a;
+  --warning: #b86e05;
+  --sidebar: #fbfcfe;
+  --sidebar-foreground: #1b2433;
+  --sidebar-muted: #5a6478;
+  --sidebar-accent: #ffffff;
+  --sidebar-border: #e6eaf1;
+  /* Pista fantasma */
+  --track: #edf2ff;
+  --fill: #3b74ff;
+  --fill-soft: #9fbcff;
+  /* Lavado de cabecera del área de trabajo */
+  --wash: #e6eeff;
+  --shadow-color: 220 40% 20%;
 }
 
 .dark {
-  --background: oklch(0.16 0.012 265);
-  --foreground: oklch(0.95 0.005 260);
-  --card: oklch(0.2 0.015 265);
-  --card-foreground: oklch(0.95 0.005 260);
-  --muted: oklch(0.25 0.015 265);
-  --muted-foreground: oklch(0.72 0.02 260);
-  --border: oklch(0.3 0.02 265);
-  --input: oklch(0.34 0.02 265);
-  --ring: oklch(0.65 0.18 265);
-  --primary: oklch(0.65 0.18 265);
-  --primary-foreground: oklch(0.15 0.02 265);
-  --accent: oklch(0.28 0.05 265);
-  --accent-foreground: oklch(0.9 0.05 265);
-  --destructive: oklch(0.65 0.2 25);
-  --destructive-foreground: oklch(0.15 0.02 265);
-  --sidebar: oklch(0.13 0.015 265);
-  --sidebar-foreground: oklch(0.9 0.01 260);
-  --sidebar-muted: oklch(0.65 0.02 260);
-  --sidebar-accent: oklch(0.24 0.04 265);
-  --sidebar-border: oklch(0.25 0.02 265);
+  --background: #0c111d;
+  --foreground: #e7ebf3;
+  --card: #131a2a;
+  --card-foreground: #e7ebf3;
+  --muted: #1a2133;
+  --muted-foreground: #9aa4b8;
+  --border: #232b3e;
+  --input: #2d3650;
+  --ring: #6b95ff;
+  --primary: #5b8bff;
+  --primary-foreground: #0a0f1c;
+  --accent: #172343;
+  --accent-foreground: #b8cbff;
+  --destructive: #f0656a;
+  --destructive-foreground: #0a0f1c;
+  --success: #3ccf8e;
+  --warning: #f2b544;
+  --sidebar: #0f1524;
+  --sidebar-foreground: #e7ebf3;
+  --sidebar-muted: #9aa4b8;
+  --sidebar-accent: #1a2236;
+  --sidebar-border: #1f2738;
+  --track: #18213a;
+  --fill: #5b8bff;
+  --fill-soft: #2c4a9a;
+  --wash: #121c36;
+  --shadow-color: 225 50% 2%;
 }
 
 @theme inline {
@@ -64,15 +86,30 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-border: var(--sidebar-border);
+  --color-track: var(--track);
+  --color-fill: var(--fill);
+  --color-fill-soft: var(--fill-soft);
+  --color-wash: var(--wash);
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --shadow-xs: 0 1px 2px hsl(var(--shadow-color) / 0.05);
+  --shadow-sm:
+    0 1px 2px hsl(var(--shadow-color) / 0.04), 0 2px 6px -1px hsl(var(--shadow-color) / 0.06);
+  --shadow-md:
+    0 2px 4px hsl(var(--shadow-color) / 0.04), 0 8px 20px -4px hsl(var(--shadow-color) / 0.1);
+  --shadow-lg:
+    0 4px 8px hsl(var(--shadow-color) / 0.05), 0 18px 40px -8px hsl(var(--shadow-color) / 0.16);
+  --font-sans:
+    "Onest Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 @layer base {
@@ -81,10 +118,69 @@
   }
   html {
     -webkit-font-smoothing: antialiased;
+    color-scheme: light;
+    scrollbar-color: var(--input) transparent;
+  }
+  html.dark {
+    color-scheme: dark;
   }
   body {
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    caret-color: var(--primary);
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 22%, transparent);
+    color: var(--foreground);
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  a {
+    text-underline-offset: 3px;
+  }
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--input);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer utilities {
+  /* Relleno de la pista fantasma: azul pleno abajo/izquierda que se desvanece. */
+  .bg-fill-fade {
+    background-image: linear-gradient(to right, var(--fill-soft), var(--fill));
+  }
+  .bg-fill-fade-y {
+    background-image: linear-gradient(to top, var(--fill), var(--fill-soft));
+  }
+  /* Lavado luminoso en lo alto del área de trabajo. */
+  .bg-workspace {
+    background-image: radial-gradient(90rem 26rem at 85% -12rem, var(--wash), transparent 70%);
+    background-repeat: no-repeat;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -14,7 +14,8 @@ import { toast } from 'sonner';
 import { api } from '@/shared/api';
 import { portfolioErrorMessage } from './errors';
 
-export const ASSIGNMENTS_PAGE_SIZE = 20;
+/** Filas por página por defecto (coincide con el `pageSize` por defecto del API). */
+export const ASSIGNMENTS_PAGE_SIZE = 25;
 
 /** Claves de caché de cartera. Invalidar `all` refresca Mi semana, ciclo y asignaciones. */
 export const portfolioKeys = {
@@ -23,8 +24,8 @@ export const portfolioKeys = {
   myWeek: (userId: number | undefined) => ['portfolio', 'my-week', userId ?? 'me'] as const,
   cycle: () => ['portfolio', 'cycle'] as const,
   assignmentsAll: () => ['portfolio', 'assignments'] as const,
-  assignments: (page: number, userId: number | undefined) =>
-    ['portfolio', 'assignments', { page, userId: userId ?? null }] as const,
+  assignments: (page: number, userId: number | undefined, pageSize = ASSIGNMENTS_PAGE_SIZE) =>
+    ['portfolio', 'assignments', { page, pageSize, userId: userId ?? null }] as const,
 };
 
 export function useMyWeek(userId: number | undefined, enabled = true) {
@@ -49,13 +50,17 @@ export function useCurrentCycle(enabled = true) {
   });
 }
 
-export function useAssignments(page: number, userId: number | undefined) {
+export function useAssignments(
+  page: number,
+  userId: number | undefined,
+  pageSize = ASSIGNMENTS_PAGE_SIZE,
+) {
   return useQuery({
-    queryKey: portfolioKeys.assignments(page, userId),
+    queryKey: portfolioKeys.assignments(page, userId, pageSize),
     queryFn: ({ signal }) => {
       const p = new URLSearchParams({
         page: String(page),
-        pageSize: String(ASSIGNMENTS_PAGE_SIZE),
+        pageSize: String(pageSize),
       });
       if (userId !== undefined) p.set('userId', String(userId));
       return api.get<Paginated<AssignmentDto>>(`/portfolio/assignments?${p}`, signal);

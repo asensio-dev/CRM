@@ -1,4 +1,9 @@
-import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUSES } from '@axiom/contracts';
+import {
+  APPOINTMENT_STATUS_LABELS,
+  APPOINTMENT_STATUSES,
+  type AppointmentDto,
+  normalizeSearchText,
+} from '@axiom/contracts';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -15,6 +20,7 @@ import {
   weekRangeIso,
 } from '@/shared/lib/managua-time';
 import { Button } from '@/shared/ui/button';
+import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -22,9 +28,11 @@ import { NativeSelect } from '@/shared/ui/native-select';
 import { PageHeader } from '@/shared/ui/page-header';
 import { Pagination } from '@/shared/ui/pagination';
 import { QueryError } from '@/shared/ui/query-error';
+import { SearchInput } from '@/shared/ui/search-input';
+import { SearchableSelect } from '@/shared/ui/searchable-select';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { AgendaWeek } from './agenda-view';
-import { AppointmentCard } from './appointment-card';
+import { AppointmentCard, appointmentSearchText } from './appointment-card';
 import { useAgenda, useAppointmentsList } from './queries';
 import { ScheduleAppointmentDialog } from './schedule-dialog';
 
@@ -35,6 +43,10 @@ const day = z
   .catch(undefined);
 const id = z.coerce.number().int().positive().optional().catch(undefined);
 
+/** Filas por página de la lista (el API admite hasta 100). */
+export const APPOINTMENT_PAGE_SIZES = [10, 20, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 20;
+
 export const appointmentsSearchSchema = z.object({
   view: z.enum(['agenda', 'lista']).default('agenda').catch('agenda'),
   /** Lunes de la semana mostrada (se normaliza al lunes). */
@@ -44,10 +56,24 @@ export const appointmentsSearchSchema = z.object({
   from: day,
   to: day,
   page: z.coerce.number().int().min(1).default(1).catch(1),
+  pageSize: z.coerce
+    .number()
+    .int()
+    .refine((n) => (APPOINTMENT_PAGE_SIZES as readonly number[]).includes(n))
+    .default(DEFAULT_PAGE_SIZE)
+    .catch(DEFAULT_PAGE_SIZE),
 });
 export type AppointmentsSearch = z.infer<typeof appointmentsSearchSchema>;
 
-const PAGE_SIZE = 20;
+/** Filtra citas por texto (empresa, notas, lugar), sin tildes ni mayúsculas. */
+export function filterAppointments(
+  items: readonly AppointmentDto[],
+  query: string | undefined,
+): AppointmentDto[] {
+  const q = normalizeSearchText(query ?? '');
+  if (!q) return [...items];
+  return items.filter((a) => normalizeSearchText(appointmentSearchText(a)).includes(q));
+}
 
 function useAppointmentsSearch() {
   const raw = useSearch({ strict: false }) as Record<string, unknown>;
@@ -68,6 +94,7 @@ function useAppointmentsSearch() {
           from: next.from || undefined,
           to: next.to || undefined,
           page: next.page === 1 ? undefined : next.page,
+          pageSize: next.pageSize === DEFAULT_PAGE_SIZE ? undefined : next.pageSize,
         };
       }) as never,
       replace: true,
@@ -83,22 +110,27 @@ function ExecutiveFilter({
   onChange: (userId?: number) => void;
 }) {
   // Los supervisores no pueden listar usuarios; el tablero ya expone a los ejecutivos con cartera.
-  const options = useExecutives({});
+  const executives = useExecutives({});
+  const options = useMemo(
+    () => (executives.data?.executives ?? []).map((x) => ({ id: x.userId, name: x.fullName })),
+    [executives.data],
+  );
+  const selected = value
+    ? (options.find((o) => o.id === value) ?? { id: value, name: `Ejecutivo ${value}` })
+    : null;
   return (
-    <div className="grid gap-1.5">
+    <div className="grid min-w-56 gap-1.5">
       <Label htmlFor="f-user">Ejecutivo</Label>
-      <NativeSelect
+      <SearchableSelect
         id="f-user"
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
-      >
-        <option value="">Todos</option>
-        {options.data?.executives.map((x) => (
-          <option key={x.userId} value={x.userId}>
-            {x.fullName}
-          </option>
-        ))}
-      </NativeSelect>
+        value={selected}
+        onChange={(o) => onChange(o?.id)}
+        options={options}
+        isLoading={executives.isPending}
+        placeholder="Todos"
+        searchPlaceholder="Buscar ejecutivo…"
+        emptyText="Ningún ejecutivo coincide"
+      />
     </div>
   );
 }
@@ -113,57 +145,99 @@ function ListSkeleton() {
   );
 }
 
+interface SectionProps {
+  search: AppointmentsSearch;
+  update: (patch: Partial<AppointmentsSearch>) => void;
+  /** Búsqueda por texto (empresa, notas, lugar). Se resuelve en cliente: el API no busca por texto. */
+  query: string;
+  onQueryChange: (q: string) => void;
+}
+
 function AgendaSection({
   search,
   update,
   today,
-}: {
-  search: AppointmentsSearch;
-  update: (patch: Partial<AppointmentsSearch>) => void;
-  today: string;
-}) {
+  query,
+  onQueryChange,
+}: SectionProps & { today: string }) {
   const monday = mondayOf(search.week ?? today);
   const range = useMemo(() => weekRangeIso(monday), [monday]);
   const agenda = useAgenda(range, search.userId);
   const isCurrent = monday === mondayOf(today);
+  // La agenda trae la semana completa: la búsqueda se resuelve en cliente sobre todas sus citas.
+  const visible = useMemo(() => filterAppointments(agenda.data ?? [], query), [agenda.data, query]);
+  const searching = !!query.trim();
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Semana anterior"
-          onClick={() => update({ week: addDays(monday, -7) })}
-        >
-          <ChevronLeft />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Semana siguiente"
-          onClick={() => update({ week: addDays(monday, 7) })}
-        >
-          <ChevronRight />
-        </Button>
-        <Button variant="outline" disabled={isCurrent} onClick={() => update({ week: undefined })}>
-          Hoy
-        </Button>
-        <h2 className="ml-1 text-base font-semibold" aria-live="polite" data-testid="week-label">
-          {formatWeekRange(monday)}
-        </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center rounded-lg border bg-card p-0.5 shadow-xs">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              aria-label="Semana anterior"
+              onClick={() => update({ week: addDays(monday, -7) })}
+            >
+              <ChevronLeft />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              aria-label="Semana siguiente"
+              onClick={() => update({ week: addDays(monday, 7) })}
+            >
+              <ChevronRight />
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isCurrent}
+            onClick={() => update({ week: undefined })}
+          >
+            Hoy
+          </Button>
+          <h2
+            className="ml-1 text-base font-semibold tabular-nums"
+            aria-live="polite"
+            data-testid="week-label"
+          >
+            {formatWeekRange(monday)}
+          </h2>
+        </div>
+        <SearchInput
+          value={query}
+          onValueChange={onQueryChange}
+          placeholder="Buscar por empresa o notas…"
+          aria-label="Buscar citas de la semana"
+          className="sm:w-72"
+        />
       </div>
-      <div aria-busy={agenda.isFetching} className={cn(agenda.isFetching && 'opacity-70')}>
+      <div
+        aria-busy={agenda.isFetching}
+        className={cn('transition-opacity', agenda.isFetching && 'opacity-70')}
+      >
         {agenda.isPending ? (
           <ListSkeleton />
         ) : agenda.isError ? (
           <QueryError error={agenda.error} onRetry={() => agenda.refetch()} />
         ) : (
           <>
-            <AgendaWeek monday={monday} appointments={agenda.data} today={today} />
-            {agenda.data.length === 0 && (
+            <AgendaWeek monday={monday} appointments={visible} today={today} />
+            {agenda.data.length === 0 ? (
               <p className="mt-3 text-center text-sm text-muted-foreground">
                 No hay citas esta semana.
               </p>
+            ) : (
+              searching && (
+                <p className="mt-3 text-center text-sm text-muted-foreground" aria-live="polite">
+                  {visible.length === 0
+                    ? 'Ninguna cita de esta semana coincide con la búsqueda.'
+                    : `${visible.length} de ${agenda.data.length} citas coinciden con la búsqueda.`}
+                </p>
+              )
             )}
           </>
         )}
@@ -172,29 +246,40 @@ function AgendaSection({
   );
 }
 
-function ListSection({
-  search,
-  update,
-}: {
-  search: AppointmentsSearch;
-  update: (patch: Partial<AppointmentsSearch>) => void;
-}) {
+function ListSection({ search, update, query, onQueryChange }: SectionProps) {
   const filters = useMemo(
     () => ({
       page: search.page,
-      pageSize: PAGE_SIZE,
+      pageSize: search.pageSize,
       status: search.status,
       userId: search.userId,
       from: search.from ? dayStartIso(search.from) : undefined,
       // `to` en pantalla es inclusivo; el API usa fin exclusivo.
       to: search.to ? dayStartIso(addDays(search.to, 1)) : undefined,
     }),
-    [search],
+    [search.page, search.pageSize, search.status, search.userId, search.from, search.to],
   );
   const list = useAppointmentsList(filters);
+  const searching = !!query.trim();
+  // El API pagina pero no busca por texto: la búsqueda filtra la página recibida.
+  const items = useMemo(
+    () => filterAppointments(list.data?.items ?? [], query),
+    [list.data, query],
+  );
+  const hasFilters = !!(search.status || search.from || search.to);
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
+    <Card className="overflow-hidden">
+      <div className="flex flex-wrap items-end gap-3 border-b p-4">
+        <div className="grid min-w-60 flex-1 gap-1.5">
+          <Label htmlFor="f-q">Buscar</Label>
+          <SearchInput
+            id="f-q"
+            value={query}
+            onValueChange={onQueryChange}
+            placeholder="Empresa o notas…"
+          />
+        </div>
         <div className="grid gap-1.5">
           <Label htmlFor="f-status">Estado</Label>
           <NativeSelect
@@ -232,36 +317,68 @@ function ListSection({
             onChange={(e) => update({ to: e.target.value || undefined })}
           />
         </div>
+        {hasFilters && (
+          <Button
+            variant="ghost"
+            onClick={() => update({ status: undefined, from: undefined, to: undefined })}
+          >
+            Limpiar filtros
+          </Button>
+        )}
       </div>
+      {searching && list.data && list.data.total > list.data.items.length && (
+        <p className="border-b bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
+          La búsqueda filtra las citas de esta página; usa estado y fechas para acotar el resto.
+        </p>
+      )}
       {list.isPending ? (
-        <ListSkeleton />
+        <div className="p-4">
+          <ListSkeleton />
+        </div>
       ) : list.isError ? (
-        <QueryError error={list.error} onRetry={() => list.refetch()} />
-      ) : list.data.items.length === 0 ? (
+        <div className="p-4">
+          <QueryError error={list.error} onRetry={() => list.refetch()} />
+        </div>
+      ) : list.data.items.length === 0 || items.length === 0 ? (
         <EmptyState
           icon={CalendarDays}
-          title="No hay citas con estos filtros"
-          description="Prueba con otro estado o rango de fechas."
+          className="rounded-none border-0 bg-transparent"
+          title={
+            list.data.items.length === 0
+              ? 'No hay citas con estos filtros'
+              : 'Ninguna cita coincide con la búsqueda'
+          }
+          description={
+            list.data.items.length === 0
+              ? 'Prueba con otro estado o rango de fechas.'
+              : 'Prueba con otro nombre de empresa o palabra de las notas.'
+          }
         />
       ) : (
-        <div className={cn('rounded-lg border bg-card', list.isFetching && 'opacity-70')}>
-          <ul className="divide-y">
-            {list.data.items.map((a) => (
-              <li key={a.id} className="p-3">
-                <AppointmentCard appointment={a} showDate />
-              </li>
-            ))}
-          </ul>
-          <Pagination
-            page={list.data.page}
-            pageSize={list.data.pageSize}
-            total={list.data.total}
-            onPageChange={(page) => update({ page })}
-            disabled={list.isFetching}
-          />
-        </div>
+        <ul
+          aria-busy={list.isFetching}
+          className={cn('divide-y transition-opacity', list.isFetching && 'opacity-70')}
+        >
+          {items.map((a) => (
+            <li key={a.id}>
+              <AppointmentCard appointment={a} showDate />
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+      {list.data && list.data.total > 0 && (
+        <Pagination
+          page={list.data.page}
+          pageSize={list.data.pageSize}
+          total={list.data.total}
+          onPageChange={(page) => update({ page })}
+          onPageSizeChange={(pageSize) => update({ pageSize })}
+          pageSizeOptions={APPOINTMENT_PAGE_SIZES}
+          itemLabel="citas"
+          disabled={list.isFetching}
+        />
+      )}
+    </Card>
   );
 }
 
@@ -270,6 +387,7 @@ export function AppointmentsPage() {
   const role = useSessionStore((s) => s.user?.role);
   const canPickExecutive = role === 'SUPERVISOR' || role === 'ADMIN';
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const today = managuaDay();
 
   return (
@@ -284,11 +402,11 @@ export function AppointmentsPage() {
           </Button>
         }
       />
-      <div className="mb-4 flex flex-wrap items-end gap-3">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div
           role="tablist"
           aria-label="Vista"
-          className="inline-flex rounded-md border bg-card p-0.5"
+          className="inline-flex rounded-lg border bg-card p-1 shadow-xs"
         >
           {(['agenda', 'lista'] as const).map((v) => (
             <button
@@ -298,10 +416,10 @@ export function AppointmentsPage() {
               aria-selected={search.view === v}
               onClick={() => update({ view: v })}
               className={cn(
-                'rounded px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 search.view === v
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
               {v === 'agenda' ? 'Agenda semanal' : 'Lista'}
@@ -313,9 +431,15 @@ export function AppointmentsPage() {
         )}
       </div>
       {search.view === 'agenda' ? (
-        <AgendaSection search={search} update={update} today={today} />
+        <AgendaSection
+          search={search}
+          update={update}
+          today={today}
+          query={query}
+          onQueryChange={setQuery}
+        />
       ) : (
-        <ListSection search={search} update={update} />
+        <ListSection search={search} update={update} query={query} onQueryChange={setQuery} />
       )}
       <ScheduleAppointmentDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
     </div>

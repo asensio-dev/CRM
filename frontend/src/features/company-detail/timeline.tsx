@@ -1,4 +1,8 @@
-import type { InteractionChannel, TimelineEntryDto } from '@axiom/contracts';
+import {
+  type InteractionChannel,
+  PIPELINE_STATUS_LABELS,
+  type TimelineEntryDto,
+} from '@axiom/contracts';
 import {
   ArrowRight,
   CalendarClock,
@@ -37,7 +41,7 @@ export function TimelineItem({ entry }: { entry: TimelineEntryDto }) {
     const Icon = CHANNEL_ICONS[entry.channel];
     return (
       <li className="relative flex gap-3" data-entry-type="INTERACTION">
-        <span className="z-10 flex size-8 shrink-0 items-center justify-center rounded-full border bg-card">
+        <span className="z-10 flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground ring-4 ring-card">
           <Icon className="size-4" aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1 pb-5">
@@ -69,7 +73,7 @@ export function TimelineItem({ entry }: { entry: TimelineEntryDto }) {
   }
   return (
     <li className="relative flex gap-3" data-entry-type="STATUS_CHANGE">
-      <span className="z-10 flex size-8 shrink-0 items-center justify-center rounded-full border bg-muted">
+      <span className="z-10 flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground ring-4 ring-card">
         <GitCommitHorizontal className="size-4" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1 pb-5">
@@ -93,24 +97,56 @@ export function TimelineItem({ entry }: { entry: TimelineEntryDto }) {
   );
 }
 
-export interface TimelineProps {
-  entries: TimelineEntryDto[];
-  hasMore: boolean;
-  loadingMore: boolean;
-  onLoadMore: () => void;
+/** Texto en el que se busca una entrada (canal, resultado, estados, notas, usuario). */
+export function timelineEntryText(e: TimelineEntryDto): string {
+  if (e.type === 'INTERACTION') {
+    return [
+      CHANNEL_LABELS[e.channel],
+      OUTCOME_LABELS[e.outcome],
+      e.notes ?? '',
+      e.user.fullName,
+    ].join(' ');
+  }
+  return [
+    'Cambio de estado',
+    e.fromStatus ? PIPELINE_STATUS_LABELS[e.fromStatus] : '',
+    PIPELINE_STATUS_LABELS[e.toStatus],
+    e.note ?? '',
+    e.user.fullName,
+  ].join(' ');
 }
 
-/** Línea de tiempo con carga incremental: botón "Cargar más" + scroll infinito si hay IntersectionObserver. */
-export function Timeline({ entries, hasMore, loadingMore, onLoadMore }: TimelineProps) {
+export interface TimelineProps {
+  entries: TimelineEntryDto[];
+  /** Carga incremental opcional; la ficha usa paginación numerada y no lo pasa. */
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
+}
+
+/** Línea de tiempo. Con `onLoadMore`: botón "Cargar más" + scroll infinito si hay IntersectionObserver. */
+export function Timeline({
+  entries,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+}: TimelineProps) {
   const sentinel = useRef<HTMLDivElement>(null);
   const loadRef = useRef(onLoadMore);
   loadRef.current = onLoadMore;
 
   useEffect(() => {
     const el = sentinel.current;
-    if (!el || !hasMore || loadingMore || typeof IntersectionObserver === 'undefined') return;
+    if (
+      !el ||
+      !hasMore ||
+      loadingMore ||
+      !loadRef.current ||
+      typeof IntersectionObserver === 'undefined'
+    )
+      return;
     const io = new IntersectionObserver((hits) => {
-      if (hits.some((h) => h.isIntersecting)) loadRef.current();
+      if (hits.some((h) => h.isIntersecting)) loadRef.current?.();
     });
     io.observe(el);
     return () => io.disconnect();
@@ -123,7 +159,7 @@ export function Timeline({ entries, hasMore, loadingMore, onLoadMore }: Timeline
           <TimelineItem key={`${e.type}-${e.id}`} entry={e} />
         ))}
       </ol>
-      {hasMore && (
+      {hasMore && onLoadMore && (
         <div ref={sentinel} className="flex justify-center">
           <Button variant="outline" size="sm" onClick={onLoadMore} disabled={loadingMore}>
             {loadingMore ? 'Cargando…' : 'Cargar más'}

@@ -11,7 +11,7 @@ export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>)
 }
 
 export function TableHeader({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn('[&_tr]:border-b', className)} {...props} />;
+  return <thead className={cn('bg-muted/45 [&_tr]:border-b', className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
@@ -20,7 +20,7 @@ export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSecti
 
 export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) {
   return (
-    <tr className={cn('border-b transition-colors hover:bg-muted/50', className)} {...props} />
+    <tr className={cn('border-b transition-colors hover:bg-accent/40', className)} {...props} />
   );
 }
 
@@ -28,7 +28,7 @@ export function TableHead({ className, ...props }: ThHTMLAttributes<HTMLTableCel
   return (
     <th
       className={cn(
-        'h-10 px-3 text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground',
+        'h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground',
         className,
       )}
       {...props}
@@ -37,7 +37,7 @@ export function TableHead({ className, ...props }: ThHTMLAttributes<HTMLTableCel
 }
 
 export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn('p-3 align-middle', className)} {...props} />;
+  return <td className={cn('px-4 py-3 align-middle', className)} {...props} />;
 }
 
 /** Esqueleto de carga para listados paginados. */

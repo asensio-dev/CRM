@@ -228,6 +228,42 @@ describe('ContractsPage', () => {
     expect(call?.url.searchParams.get('startFrom')).toBe('2026-01-01');
   });
 
+  test('filas por página van al API y la búsqueda filtra la página por código o empresa', async () => {
+    mocked = mockFetch(({ url }) =>
+      url.pathname === '/api/contracts'
+        ? jsonResponse({
+            items: [
+              contract(1, { code: 'CT-0001', companyName: 'ALFA S.A.' }),
+              contract(2, { code: 'CT-0002', companyName: 'BETA COMERCIAL' }),
+            ],
+            page: Number(url.searchParams.get('page')),
+            pageSize: Number(url.searchParams.get('pageSize')),
+            total: 60,
+          })
+        : undefined,
+    );
+    const router = await mountApp('/contratos');
+    expect((await screen.findAllByText('CT-0001')).length).toBeGreaterThan(0);
+    expect(
+      mocked.calls
+        .find((c) => c.url.pathname === '/api/contracts')
+        ?.url.searchParams.get('pageSize'),
+    ).toBe('25');
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText('Filas por página'), '50');
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ pageSize: 50 }));
+    await waitFor(() =>
+      expect(mocked.calls.some((c) => c.url.searchParams.get('pageSize') === '50')).toBe(true),
+    );
+    await user.type(screen.getByLabelText('Buscar'), 'beta');
+    await waitFor(() => expect(screen.queryAllByText('CT-0001')).toHaveLength(0));
+    expect(screen.getAllByText('CT-0002').length).toBeGreaterThan(0);
+    expect(screen.getByText(/La búsqueda filtra los contratos de esta página/)).toBeTruthy();
+    await user.clear(screen.getByLabelText('Buscar'));
+    await user.type(screen.getByLabelText('Buscar'), 'zzz');
+    expect(await screen.findByText('Ningún contrato coincide con la búsqueda')).toBeTruthy();
+  });
+
   test('estado vacío', async () => {
     mocked = mockFetch(({ url }) =>
       url.pathname === '/api/contracts' ? jsonResponse(page([])) : undefined,

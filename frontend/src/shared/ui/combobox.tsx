@@ -1,6 +1,7 @@
 import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useState } from 'react';
 import { cn } from '../lib/cn';
+import { Pagination } from './pagination';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 
 export interface ComboboxOption {
@@ -25,6 +26,13 @@ interface ComboboxProps {
   disabled?: boolean;
   className?: string;
   'aria-label'?: string;
+  /** Paginación de resultados (el padre pide al API la página indicada). */
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    onPageChange: (page: number) => void;
+  };
 }
 
 /** Selector con búsqueda asíncrona: el padre filtra las opciones según `query`. */
@@ -44,6 +52,7 @@ export function Combobox({
   disabled,
   className,
   'aria-label': ariaLabel,
+  pagination,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -91,7 +100,7 @@ export function Combobox({
             aria-haspopup="listbox"
             aria-expanded={open}
             className={cn(
-              'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-card px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive',
+              'flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-input bg-card px-3 text-sm shadow-xs hover:border-muted-foreground/40 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive',
               clearable && value && 'pr-14',
             )}
           >
@@ -114,7 +123,7 @@ export function Combobox({
             aria-expanded="true"
             aria-controls={listId}
             aria-activedescendant={options[active] ? `${listId}-${options[active].id}` : undefined}
-            className="h-9 w-full rounded-t-md border-b bg-transparent px-3 text-sm focus:outline-none"
+            className="h-10 w-full rounded-t-xl border-b bg-transparent px-3 text-sm focus:outline-none"
           />
           <div id={listId} role="listbox" className="max-h-60 overflow-auto p-1">
             {isLoading && (
@@ -151,6 +160,17 @@ export function Combobox({
               </div>
             ))}
           </div>
+          {pagination && pagination.total > pagination.pageSize && (
+            <Pagination
+              variant="compact"
+              page={pagination.page}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              onPageChange={pagination.onPageChange}
+              disabled={isLoading}
+              className="border-t px-2 py-1.5"
+            />
+          )}
         </PopoverContent>
       </Popover>
       {clearable && value && !disabled && (

@@ -3,11 +3,11 @@ import type { HTMLAttributes } from 'react';
 import { cn } from '../lib/cn';
 
 export const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap',
+  'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap',
   {
     variants: {
       variant: {
-        default: 'border-transparent bg-primary text-primary-foreground',
+        default: 'border-transparent bg-accent text-accent-foreground',
         secondary: 'border-transparent bg-muted text-muted-foreground',
         outline: 'border-border text-foreground',
         destructive: 'border-transparent bg-destructive text-destructive-foreground',

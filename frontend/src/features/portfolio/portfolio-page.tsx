@@ -1,20 +1,29 @@
-import type { AssignmentDto, ExecutiveCoverageDto } from '@axiom/contracts';
+import { type AssignmentDto, normalizeSearchText } from '@axiom/contracts';
 import { Link } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Briefcase, CalendarRange, PackagePlus, Shuffle, UserMinus, X } from 'lucide-react';
+import {
+  Briefcase,
+  CalendarRange,
+  PackagePlus,
+  SearchX,
+  Shuffle,
+  UserMinus,
+  X,
+} from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useSessionStore } from '@/features/auth/session-store';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
+import { Card } from '@/shared/ui/card';
 import { Checkbox } from '@/shared/ui/checkbox';
+import type { ComboboxOption } from '@/shared/ui/combobox';
 import { DataTable } from '@/shared/ui/data-table';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { Label } from '@/shared/ui/label';
-import { NativeSelect } from '@/shared/ui/native-select';
 import { PageHeader } from '@/shared/ui/page-header';
 import { Pagination } from '@/shared/ui/pagination';
 import { QueryError } from '@/shared/ui/query-error';
+import { SearchInput } from '@/shared/ui/search-input';
+import { SearchableSelect } from '@/shared/ui/searchable-select';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { TableSkeleton } from '@/shared/ui/table';
@@ -25,8 +34,8 @@ import {
   ReleaseDialog,
   type SelectedCompany,
 } from './assignment-dialogs';
-import { formatLocalRange, percent } from './format';
-import { ProgressBar } from './progress-bar';
+import { CyclePanel, PortfolioStats } from './cycle-panel';
+import { ExecutivePerformance } from './executive-performance';
 import { RunWeeklyButton } from './run-weekly';
 import { LastContact } from './status-cell';
 
@@ -51,7 +60,7 @@ function StalledBadge({ cycles }: { cycles: number }) {
   if (cycles <= 0) return <span className="text-muted-foreground">—</span>;
   return (
     <Badge
-      className="border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-300"
+      className="border-transparent bg-warning/12 text-warning"
       title="Ciclos consecutivos sin avance en el pipeline"
     >
       {cycles} {cycles === 1 ? 'ciclo' : 'ciclos'} sin avance
@@ -116,81 +125,38 @@ function AssignmentCard({
   );
 }
 
-function ExecutiveCard({ e }: { e: ExecutiveCoverageDto }) {
-  const planPct = e.plan ? percent(e.plan.contacted, e.plan.quota) : 0;
-  return (
-    <Card data-testid={`exec-${e.userId}`}>
-      <CardHeader className="p-4 pb-2">
-        <CardTitle>{e.fullName}</CardTitle>
-        <CardDescription>
-          Cartera: <span className="tabular-nums">{e.assigned}</span> /{' '}
-          <span className="tabular-nums">{e.target}</span> empresas
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-3 p-4 pt-2 text-sm">
-        <div className="grid gap-1">
-          <div className="flex justify-between">
-            <span>Cobertura del ciclo</span>
-            <span className="tabular-nums font-medium">
-              {e.contactedThisCycle}/{e.assigned} · {Math.round(e.coveragePct)}%
-            </span>
-          </div>
-          <ProgressBar
-            value={e.contactedThisCycle}
-            max={e.assigned}
-            label={`Cobertura del ciclo de ${e.fullName}`}
-            complete={e.assigned > 0 && e.contactedThisCycle >= e.assigned}
-          />
-        </div>
-        <div className="grid gap-1">
-          <div className="flex justify-between">
-            <span>Plan de esta semana</span>
-            <span className="tabular-nums font-medium">
-              {e.plan ? `${e.plan.contacted}/${e.plan.quota} · ${planPct}%` : 'Sin plan'}
-            </span>
-          </div>
-          {e.plan && (
-            <ProgressBar
-              value={e.plan.contacted}
-              max={e.plan.quota}
-              label={`Plan semanal de ${e.fullName}`}
-              complete={e.plan.contacted >= e.plan.quota}
-            />
-          )}
-        </div>
-        <Link
-          to="/mi-semana"
-          search={{ userId: e.userId } as never}
-          className="text-xs text-primary hover:underline"
-        >
-          Ver su semana
-        </Link>
-      </CardContent>
-    </Card>
-  );
-}
+const assignmentText = (a: AssignmentDto) =>
+  `${a.legalName} ${a.tradeName ?? ''} ${a.userName} ${a.phone ?? ''}`;
 
 export function PortfolioPage() {
   const user = useSessionStore((s) => s.user);
   const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
   const isAdmin = user?.role === 'ADMIN';
+  const isExecutive = user?.role === 'EJECUTIVO';
 
   const cycle = useCurrentCycle();
   const [page, setPage] = useState(1);
-  const [executiveFilter, setExecutiveFilter] = useState('');
-  const filterUserId = canManage && executiveFilter ? Number(executiveFilter) : undefined;
-  const assignments = useAssignments(page, filterUserId);
+  const [pageSize, setPageSize] = useState(ASSIGNMENTS_PAGE_SIZE);
+  const [executiveFilter, setExecutiveFilter] = useState<ComboboxOption | null>(null);
+  const [query, setQuery] = useState('');
+  const filterUserId = canManage && executiveFilter ? executiveFilter.id : undefined;
+  const assignments = useAssignments(page, filterUserId, pageSize);
 
   const [selection, setSelection] = useState<ReadonlyMap<number, string>>(new Map());
   const [reassigning, setReassigning] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [releasing, setReleasing] = useState<AssignmentDto | null>(null);
 
+  const allExecutives = cycle.data?.executives ?? [];
   // El EJECUTIVO ve solo su fila (el backend ya lo acota; esto es defensa en profundidad).
   const executives = useMemo(() => {
     const all = cycle.data?.executives ?? [];
-    return user?.role === 'EJECUTIVO' ? all.filter((e) => e.userId === user.id) : all;
-  }, [cycle.data, user]);
+    return isExecutive ? all.filter((e) => e.userId === user?.id) : all;
+  }, [cycle.data, isExecutive, user?.id]);
+  const executiveOptions = useMemo<ComboboxOption[]>(
+    () => (cycle.data?.executives ?? []).map((e) => ({ id: e.userId, name: e.fullName })),
+    [cycle.data],
+  );
 
   const toggle = useCallback(
     (a: AssignmentDto, on: boolean) =>
@@ -203,7 +169,13 @@ export function PortfolioPage() {
     [],
   );
 
-  const pageItems = useMemo(() => assignments.data?.items ?? [], [assignments.data]);
+  // El API no tiene búsqueda de texto en asignaciones: se filtra la página cargada.
+  const pageItems = useMemo(() => {
+    const items = assignments.data?.items ?? [];
+    const q = normalizeSearchText(query);
+    if (!q) return items;
+    return items.filter((a) => normalizeSearchText(assignmentText(a)).includes(q));
+  }, [assignments.data, query]);
   const allOnPage = pageItems.length > 0 && pageItems.every((a) => selection.has(a.companyId));
   const someOnPage = pageItems.some((a) => selection.has(a.companyId));
   const togglePage = useCallback(
@@ -250,7 +222,7 @@ export function PortfolioPage() {
         meta: { className: 'min-w-56' },
         cell: ({ row }) => <CompanyLink a={row.original} />,
       },
-      ...(user?.role === 'EJECUTIVO'
+      ...(isExecutive
         ? []
         : [
             {
@@ -307,31 +279,31 @@ export function PortfolioPage() {
       });
     }
     return cols;
-  }, [canManage, user?.role, selection, allOnPage, someOnPage, toggle, togglePage]);
+  }, [canManage, isExecutive, selection, allOnPage, someOnPage, toggle, togglePage]);
 
   const week = cycle.data?.week ?? null;
   const selected: SelectedCompany[] = [...selection].map(([id, name]) => ({ id, name }));
 
+  const changeFilter = (option: ComboboxOption | null) => {
+    setExecutiveFilter(option);
+    setPage(1);
+    setSelection(new Map());
+  };
+
   return (
-    <div>
+    <div className="grid gap-6">
       <PageHeader
         title="Cartera"
         description="Ciclo de rotación, cobertura por ejecutivo y empresas asignadas."
-        actions={
-          <>
-            {canManage && (
-              <Button variant="outline" onClick={() => setBulkOpen(true)}>
-                <PackagePlus aria-hidden="true" /> Asignación masiva
-              </Button>
-            )}
-            {isAdmin && <RunWeeklyButton />}
-          </>
-        }
+        actions={isAdmin ? <RunWeeklyButton /> : undefined}
       />
 
-      <section aria-label="Ciclo actual" className="mb-6 grid gap-4">
+      <section aria-label="Ciclo actual" className="-mt-1 grid gap-4">
         {cycle.isPending ? (
-          <Skeleton className="h-24 w-full" />
+          <>
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </>
         ) : cycle.isError ? (
           <QueryError error={cycle.error} onRetry={() => void cycle.refetch()} />
         ) : !week ? (
@@ -347,73 +319,71 @@ export function PortfolioPage() {
           />
         ) : (
           <>
-            <Card>
-              <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Ciclo actual</p>
-                  <h2 className="text-xl font-semibold">Ciclo #{week.cycle.number}</h2>
-                </div>
-                <div className="text-right text-sm">
-                  <p className="font-medium">
-                    Semana {week.weekNumber} de {week.totalWeeks}
-                  </p>
-                  <p className="text-muted-foreground">
-                    {formatLocalRange(week.cycle.startDate, week.cycle.endDate)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            {executives.length === 0 ? (
-              <EmptyState
-                icon={Briefcase}
-                title="Sin ejecutivos en el ciclo"
-                description="No hay ejecutivos activos con cartera para mostrar."
-              />
-            ) : (
-              <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {executives.map((e) => (
-                  <li key={e.userId}>
-                    <ExecutiveCard e={e} />
-                  </li>
-                ))}
-              </ul>
+            {executives.length > 0 && (
+              <PortfolioStats executives={executives} showExecutiveCount={!isExecutive} />
             )}
+            <CyclePanel week={week} />
           </>
         )}
       </section>
 
+      {week && !cycle.isError && (
+        <section aria-label="Rendimiento por ejecutivo">
+          {executives.length === 0 ? (
+            <EmptyState
+              icon={Briefcase}
+              title="Sin ejecutivos en el ciclo"
+              description="No hay ejecutivos activos con cartera para mostrar."
+            />
+          ) : (
+            <ExecutivePerformance executives={executives} self={isExecutive} />
+          )}
+        </section>
+      )}
+
       <section aria-label="Asignaciones">
         <Card className="overflow-hidden">
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b p-4">
-            <h2 className="text-base font-semibold">Empresas asignadas</h2>
-            {canManage && (
-              <div className="grid gap-1">
-                <Label htmlFor="assignments-executive" className="text-xs">
-                  Filtrar por ejecutivo
-                </Label>
-                <NativeSelect
-                  id="assignments-executive"
-                  className="min-w-52"
-                  value={executiveFilter}
-                  onChange={(e) => {
-                    setExecutiveFilter(e.target.value);
-                    setPage(1);
-                    setSelection(new Map());
-                  }}
-                >
-                  <option value="">Todos</option>
-                  {(cycle.data?.executives ?? []).map((e) => (
-                    <option key={e.userId} value={e.userId}>
-                      {e.fullName}
-                    </option>
-                  ))}
-                </NativeSelect>
+          <div className="grid gap-4 border-b px-5 py-4">
+            <div className="grid gap-0.5">
+              <h2 className="text-base font-semibold">Empresas asignadas</h2>
+              <p className="text-sm text-muted-foreground">
+                {isExecutive
+                  ? 'Las empresas de tu cartera en este ciclo.'
+                  : 'Empresas en cartera durante el ciclo actual.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                <SearchInput
+                  className="sm:w-72"
+                  value={query}
+                  onValueChange={setQuery}
+                  placeholder="Buscar en esta página…"
+                  aria-label="Buscar en las empresas de esta página"
+                />
+                {canManage && (
+                  <SearchableSelect
+                    className="sm:w-60"
+                    aria-label="Filtrar por ejecutivo"
+                    placeholder="Todos los ejecutivos"
+                    searchPlaceholder="Buscar ejecutivo…"
+                    emptyText="Ningún ejecutivo coincide"
+                    options={executiveOptions}
+                    value={executiveFilter}
+                    onChange={changeFilter}
+                  />
+                )}
               </div>
-            )}
+              {canManage && (
+                <Button variant="outline" onClick={() => setBulkOpen(true)}>
+                  <PackagePlus aria-hidden="true" /> Asignación masiva
+                </Button>
+              )}
+            </div>
           </div>
           {canManage && selection.size > 0 && (
             <div
-              className="flex flex-wrap items-center gap-2 border-b bg-accent/50 px-4 py-2 text-sm"
+              className="flex flex-wrap items-center gap-2 border-b bg-accent/60 px-5 py-2 text-sm"
               role="status"
             >
               <span className="font-medium">
@@ -430,9 +400,11 @@ export function PortfolioPage() {
           {assignments.isPending ? (
             <TableSkeleton columns={6} rows={8} />
           ) : assignments.isError && !assignments.data ? (
-            <QueryError error={assignments.error} onRetry={() => void assignments.refetch()} />
+            <div className="p-5">
+              <QueryError error={assignments.error} onRetry={() => void assignments.refetch()} />
+            </div>
           ) : assignments.data && assignments.data.items.length === 0 ? (
-            <div className="p-6">
+            <div className="p-5">
               <EmptyState
                 icon={Briefcase}
                 title="Sin asignaciones"
@@ -441,29 +413,49 @@ export function PortfolioPage() {
             </div>
           ) : assignments.data ? (
             <>
-              <DataTable
-                columns={columns}
-                data={assignments.data.items}
-                getRowId={(a) => String(a.id)}
-                isFetching={assignments.isFetching}
-                caption="Empresas asignadas"
-                renderCard={(a) => (
-                  <AssignmentCard
-                    a={a}
-                    canManage={canManage}
-                    showExecutive={user?.role !== 'EJECUTIVO'}
-                    selected={selection.has(a.companyId)}
-                    onToggle={(on) => toggle(a, on)}
-                    onRelease={() => setReleasing(a)}
+              {pageItems.length === 0 ? (
+                <div className="p-5">
+                  <EmptyState
+                    icon={SearchX}
+                    title="Ninguna empresa de esta página coincide"
+                    description="La búsqueda filtra la página cargada. Prueba otra página o limpia la búsqueda."
+                    action={
+                      <Button variant="outline" onClick={() => setQuery('')}>
+                        Limpiar búsqueda
+                      </Button>
+                    }
                   />
-                )}
-              />
+                </div>
+              ) : (
+                <DataTable
+                  columns={columns}
+                  data={pageItems}
+                  getRowId={(a) => String(a.id)}
+                  isFetching={assignments.isFetching}
+                  caption="Empresas asignadas"
+                  renderCard={(a) => (
+                    <AssignmentCard
+                      a={a}
+                      canManage={canManage}
+                      showExecutive={!isExecutive}
+                      selected={selection.has(a.companyId)}
+                      onToggle={(on) => toggle(a, on)}
+                      onRelease={() => setReleasing(a)}
+                    />
+                  )}
+                />
+              )}
               <Pagination
                 page={assignments.data.page}
-                pageSize={assignments.data.pageSize || ASSIGNMENTS_PAGE_SIZE}
+                pageSize={pageSize}
                 total={assignments.data.total}
                 disabled={assignments.isFetching}
                 onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setPage(1);
+                }}
+                itemLabel="empresas"
               />
             </>
           ) : null}
@@ -474,14 +466,10 @@ export function PortfolioPage() {
         open={reassigning}
         onOpenChange={setReassigning}
         selection={selected}
-        executives={cycle.data?.executives ?? []}
+        executives={allExecutives}
         onDone={() => setSelection(new Map())}
       />
-      <BulkAssignDialog
-        open={bulkOpen}
-        onOpenChange={setBulkOpen}
-        executives={cycle.data?.executives ?? []}
-      />
+      <BulkAssignDialog open={bulkOpen} onOpenChange={setBulkOpen} executives={allExecutives} />
       <ReleaseDialog assignment={releasing} onOpenChange={(o) => !o && setReleasing(null)} />
     </div>
   );

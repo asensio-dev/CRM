@@ -96,7 +96,7 @@ export function DataTable<T>({
                         <button
                           type="button"
                           onClick={header.column.getToggleSortingHandler()}
-                          className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-0.5 uppercase tracking-wide hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-0.5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
                           {dir === 'asc' ? (

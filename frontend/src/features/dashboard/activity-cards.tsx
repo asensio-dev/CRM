@@ -1,8 +1,7 @@
 import { INTERACTION_OUTCOMES, type WeeklyActivityDto } from '@axiom/contracts';
 import { Activity } from 'lucide-react';
-import { useMemo } from 'react';
+import { type ReactNode, useId, useMemo } from 'react';
 import {
-  Area,
   Bar,
   BarChart,
   CartesianGrid,
@@ -38,21 +37,68 @@ export const OUTCOME_COLORS: Record<(typeof INTERACTION_OUTCOMES)[number], strin
   NUMERO_EQUIVOCADO: SERIES_COLORS[3],
 };
 
-const tooltipStyle = {
-  background: 'var(--card)',
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  color: 'var(--foreground)',
-  fontSize: 12,
-};
 const axisTick = { fill: 'var(--chart-axis)', fontSize: 12 };
+const axisProps = { tick: axisTick, axisLine: false, tickLine: false } as const;
+const legendStyle = { fontSize: 12, color: 'var(--muted-foreground)' };
+const margin = { top: 8, right: 8, bottom: 4, left: -12 };
 const tickDay = (v: string) => formatDayMonth(v);
-const tooltipLabel = (v: unknown) => `Semana del ${formatDayMonthYear(String(v))}`;
-const tooltipNumber = (v: unknown) => formatInt(Number(v));
+/** Pista fantasma detrás de cada barra. */
+const TRACK = { fill: 'var(--track)', radius: 6 };
 
 function hasActivity(data: WeeklyActivityDto | undefined): boolean {
   return !!data?.weeks.some((w) => w.interactions > 0 || w.companiesContacted > 0);
 }
+
+/** Identificador apto para `url(#…)` (useId devuelve dos puntos). */
+function useSvgId(prefix: string) {
+  return `${prefix}-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+}
+
+interface TooltipEntry {
+  name?: unknown;
+  value?: unknown;
+  color?: string;
+  dataKey?: unknown;
+}
+
+/** Tarjeta blanca del tooltip: semana, y una fila por serie con su color. */
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: readonly TooltipEntry[];
+  label?: unknown;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="min-w-44 rounded-lg border bg-card px-3 py-2.5 text-xs text-card-foreground shadow-md">
+      <p className="mb-1.5 font-medium">Semana del {formatDayMonthYear(String(label))}</p>
+      <ul className="space-y-1">
+        {payload.map((p) => (
+          <li key={String(p.dataKey)} className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span
+                aria-hidden="true"
+                className="size-2 rounded-full"
+                style={{ background: p.color }}
+              />
+              {String(p.name)}
+            </span>
+            <span className="font-semibold tabular-nums">{formatInt(Number(p.value))}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const renderTooltip = (props: {
+  active?: boolean;
+  payload?: readonly TooltipEntry[];
+  label?: unknown;
+}): ReactNode => <ChartTooltip {...props} />;
 
 /** Tabla accesible equivalente al gráfico (solo lectores de pantalla). */
 function SrTable({ caption, head, rows }: { caption: string; head: string[]; rows: string[][] }) {
@@ -126,23 +172,30 @@ export function pivotExecutives(data: WeeklyActivityDto) {
 export function WeeklyActivityCard({
   data,
   byExecutive,
+  action,
 }: {
   data: WeeklyActivityDto | undefined;
   byExecutive: boolean;
+  /** Control opcional en la cabecera (p. ej. "Ver actividad por ejecutivo"). */
+  action?: ReactNode;
 }) {
+  const gradientId = useSvgId('weekly-fill');
   const pivot = useMemo(
     () => (data && byExecutive ? pivotExecutives(data) : null),
     [data, byExecutive],
   );
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Actividad semanal</CardTitle>
-        <CardDescription>
-          {byExecutive
-            ? 'Interacciones por ejecutivo en las últimas 12 semanas.'
-            : 'Interacciones y empresas distintas contactadas por semana (últimas 12).'}
-        </CardDescription>
+      <CardHeader className="flex-row flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <CardTitle>Actividad semanal</CardTitle>
+          <CardDescription>
+            {byExecutive
+              ? 'Interacciones por ejecutivo en las últimas 12 semanas.'
+              : 'Interacciones y empresas distintas contactadas por semana (últimas 12).'}
+          </CardDescription>
+        </div>
+        {action}
       </CardHeader>
       <CardContent>
         {!hasActivity(data) || !data ? (
@@ -151,44 +204,26 @@ export function WeeklyActivityCard({
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               {pivot ? (
-                <ComposedChart
-                  data={pivot.rows}
-                  margin={{ top: 8, right: 12, bottom: 16, left: 4 }}
-                >
+                <ComposedChart data={pivot.rows} margin={margin}>
                   <CartesianGrid
                     stroke="var(--chart-grid)"
-                    strokeDasharray="3 3"
+                    strokeDasharray="4 4"
                     vertical={false}
                   />
-                  <XAxis
-                    dataKey="weekStart"
-                    tickFormatter={tickDay}
-                    tick={axisTick}
-                    label={{
-                      value: 'Semana (inicio lunes)',
-                      position: 'insideBottom',
-                      offset: -10,
-                      fill: 'var(--chart-axis)',
-                      fontSize: 12,
-                    }}
-                  />
-                  <YAxis
-                    tick={axisTick}
-                    allowDecimals={false}
-                    label={{
-                      value: 'Interacciones',
-                      angle: -90,
-                      position: 'insideLeft',
-                      fill: 'var(--chart-axis)',
-                      fontSize: 12,
-                    }}
-                  />
+                  <XAxis dataKey="weekStart" tickFormatter={tickDay} {...axisProps} />
+                  <YAxis allowDecimals={false} {...axisProps} />
                   <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelFormatter={tooltipLabel}
-                    formatter={tooltipNumber}
+                    content={renderTooltip}
+                    cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
                   />
-                  <Legend verticalAlign="top" height={28} />
+                  <Legend
+                    verticalAlign="top"
+                    align="right"
+                    height={32}
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={legendStyle}
+                  />
                   {pivot.series.map((s) => (
                     <Line
                       key={s.key}
@@ -198,64 +233,52 @@ export function WeeklyActivityCard({
                       stroke={s.color}
                       strokeWidth={2}
                       dot={false}
+                      activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--card)' }}
                     />
                   ))}
                 </ComposedChart>
               ) : (
-                <ComposedChart
-                  data={data.weeks}
-                  margin={{ top: 8, right: 12, bottom: 16, left: 4 }}
-                >
+                <ComposedChart data={data.weeks} margin={margin} barCategoryGap="28%">
+                  <defs>
+                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--fill)" />
+                      <stop offset="100%" stopColor="var(--fill-soft)" />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     stroke="var(--chart-grid)"
-                    strokeDasharray="3 3"
+                    strokeDasharray="4 4"
                     vertical={false}
                   />
-                  <XAxis
-                    dataKey="weekStart"
-                    tickFormatter={tickDay}
-                    tick={axisTick}
-                    label={{
-                      value: 'Semana (inicio lunes)',
-                      position: 'insideBottom',
-                      offset: -10,
-                      fill: 'var(--chart-axis)',
-                      fontSize: 12,
-                    }}
+                  <XAxis dataKey="weekStart" tickFormatter={tickDay} {...axisProps} />
+                  <YAxis allowDecimals={false} {...axisProps} />
+                  <Tooltip content={renderTooltip} cursor={false} />
+                  <Legend
+                    verticalAlign="top"
+                    align="right"
+                    height={32}
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={legendStyle}
                   />
-                  <YAxis
-                    tick={axisTick}
-                    allowDecimals={false}
-                    label={{
-                      value: 'Cantidad',
-                      angle: -90,
-                      position: 'insideLeft',
-                      fill: 'var(--chart-axis)',
-                      fontSize: 12,
-                    }}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelFormatter={tooltipLabel}
-                    formatter={tooltipNumber}
-                  />
-                  <Legend verticalAlign="top" height={28} />
-                  <Area
-                    type="monotone"
+                  <Bar
                     dataKey="interactions"
                     name="Interacciones"
-                    stroke="var(--chart-1)"
-                    fill="var(--chart-1)"
-                    fillOpacity={0.15}
-                    strokeWidth={2}
+                    fill={`url(#${gradientId})`}
+                    background={TRACK}
+                    radius={[6, 6, 6, 6]}
+                    activeBar={{ fill: 'var(--fill)' }}
+                    maxBarSize={36}
                   />
                   <Line
                     type="monotone"
                     dataKey="companiesContacted"
                     name="Empresas distintas"
-                    stroke="var(--chart-2)"
+                    stroke="var(--foreground)"
+                    strokeOpacity={0.75}
                     strokeWidth={2}
-                    dot={{ r: 2 }}
+                    dot={{ r: 2.5, fill: 'var(--card)', strokeWidth: 2 }}
+                    activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--card)' }}
                   />
                 </ComposedChart>
               )}
@@ -281,6 +304,7 @@ export function OutcomesCard({ data }: { data: WeeklyActivityDto | undefined }) 
     () => (data?.weeks ?? []).map((w) => ({ weekStart: w.weekStart, ...w.byOutcome })),
     [data],
   );
+  const last = INTERACTION_OUTCOMES.length - 1;
   return (
     <Card>
       <CardHeader>
@@ -293,45 +317,29 @@ export function OutcomesCard({ data }: { data: WeeklyActivityDto | undefined }) 
         ) : (
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={rows} margin={{ top: 8, right: 12, bottom: 16, left: 4 }}>
-                <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  dataKey="weekStart"
-                  tickFormatter={tickDay}
-                  tick={axisTick}
-                  label={{
-                    value: 'Semana (inicio lunes)',
-                    position: 'insideBottom',
-                    offset: -10,
-                    fill: 'var(--chart-axis)',
-                    fontSize: 12,
-                  }}
+              <BarChart data={rows} margin={margin} barCategoryGap="28%">
+                <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="4 4" vertical={false} />
+                <XAxis dataKey="weekStart" tickFormatter={tickDay} {...axisProps} />
+                <YAxis allowDecimals={false} {...axisProps} />
+                <Tooltip content={renderTooltip} cursor={false} />
+                <Legend
+                  verticalAlign="top"
+                  height={44}
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={legendStyle}
                 />
-                <YAxis
-                  tick={axisTick}
-                  allowDecimals={false}
-                  label={{
-                    value: 'Interacciones',
-                    angle: -90,
-                    position: 'insideLeft',
-                    fill: 'var(--chart-axis)',
-                    fontSize: 12,
-                  }}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  labelFormatter={tooltipLabel}
-                  formatter={tooltipNumber}
-                  cursor={{ fill: 'var(--muted)', opacity: 0.5 }}
-                />
-                <Legend verticalAlign="top" height={44} />
-                {INTERACTION_OUTCOMES.map((o) => (
+                {INTERACTION_OUTCOMES.map((o, i) => (
                   <Bar
                     key={o}
                     dataKey={o}
                     name={OUTCOME_LABELS[o]}
                     stackId="outcomes"
                     fill={OUTCOME_COLORS[o]}
+                    // La pista fantasma va en la primera serie (debajo de toda la pila).
+                    background={i === 0 ? TRACK : undefined}
+                    radius={i === last ? [6, 6, 0, 0] : undefined}
+                    maxBarSize={36}
                   />
                 ))}
               </BarChart>

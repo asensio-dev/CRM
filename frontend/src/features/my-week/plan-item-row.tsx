@@ -37,18 +37,11 @@ export function PlanItemRow({
       data-testid={`plan-item-${item.itemId}`}
       data-contacted={contacted}
       data-reason={item.reason}
-      className={cn(
-        'min-w-0 rounded-lg border bg-card p-3 shadow-sm sm:p-4',
-        contacted &&
-          'border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/30 dark:bg-emerald-500/5',
-      )}
+      className={cn('min-w-0 px-4 py-4 transition-colors sm:px-5', contacted && 'bg-success/5')}
     >
       <div className="flex items-start gap-3">
         {contacted ? (
-          <CheckCircle2
-            className="mt-0.5 size-6 shrink-0 text-emerald-600 dark:text-emerald-400"
-            aria-hidden="true"
-          />
+          <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-success" aria-hidden="true" />
         ) : (
           <Circle className="mt-0.5 size-6 shrink-0 text-muted-foreground/50" aria-hidden="true" />
         )}
@@ -101,7 +94,7 @@ export function PlanItemRow({
               </div>
             )}
             {contacted && item.contactedAt && (
-              <div className="flex gap-1 text-emerald-700 dark:text-emerald-400">
+              <div className="flex gap-1 text-success">
                 <dt>Contactada:</dt>
                 <dd>
                   <time dateTime={item.contactedAt} title={formatAbsolute(item.contactedAt)}>

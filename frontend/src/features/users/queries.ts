@@ -3,17 +3,33 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api } from '@/shared/api';
 
 export const USERS_PAGE_SIZE = 20;
+/** Máximo que admite el API por página; se usa para traer el directorio completo. */
+const FETCH_PAGE_SIZE = 100;
 
 export const userKeys = {
   all: ['users'] as const,
-  list: (page: number) => [...userKeys.all, 'list', page] as const,
+  list: () => [...userKeys.all, 'list'] as const,
 };
 
-export function useUsers(page: number) {
+/**
+ * Directorio completo de usuarios. `GET /users` solo pagina (sin `q` ni filtros), así que se
+ * traen todas las páginas de 100 y la búsqueda, los filtros y la paginación se hacen en cliente.
+ * El número de cuentas es pequeño (decenas), por lo que suele ser una sola petición.
+ */
+export function useUsers() {
   return useQuery({
-    queryKey: userKeys.list(page),
-    queryFn: ({ signal }) =>
-      api.get<Paginated<UserDto>>(`/users?page=${page}&pageSize=${USERS_PAGE_SIZE}`, signal),
+    queryKey: userKeys.list(),
+    queryFn: async ({ signal }) => {
+      const items: UserDto[] = [];
+      for (let page = 1; ; page++) {
+        const res = await api.get<Paginated<UserDto>>(
+          `/users?page=${page}&pageSize=${FETCH_PAGE_SIZE}`,
+          signal,
+        );
+        items.push(...res.items);
+        if (res.items.length === 0 || items.length >= res.total) return items;
+      }
+    },
     placeholderData: keepPreviousData,
   });
 }

@@ -1,7 +1,8 @@
-import { useNavigate } from '@tanstack/react-router';
-import { ChevronDown, LogOut, Menu, Moon, Sun } from 'lucide-react';
+import { useLocation, useNavigate } from '@tanstack/react-router';
+import { CalendarDays, ChevronDown, LogOut, Menu } from 'lucide-react';
 import { useSessionStore } from '@/features/auth/session-store';
-import { useTheme } from '@/shared/hooks/use-theme';
+import { initials } from '@/shared/lib/initials';
+import { formatLongDay, managuaDay } from '@/shared/lib/managua-time';
 import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
@@ -11,24 +12,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-import { ROLE_LABELS } from '../navigation';
+import { NAV_ITEMS, ROLE_LABELS } from '../navigation';
 import { useLayoutStore } from './layout-store';
 
-function initials(fullName: string): string {
-  return fullName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join('');
+/** Sección actual según la ruta (la ficha de empresa cuelga de Empresas). */
+function useCurrentSection() {
+  const pathname = useLocation({ select: (l) => l.pathname });
+  return NAV_ITEMS.find((i) => pathname === i.to || pathname.startsWith(`${i.to}/`));
 }
 
 export function Topbar() {
   const user = useSessionStore((s) => s.user);
   const logout = useSessionStore((s) => s.logout);
-  const { theme, toggle } = useTheme();
   const setMobileOpen = useLayoutStore((s) => s.setMobileOpen);
   const navigate = useNavigate();
+  const section = useCurrentSection();
+  const today = formatLongDay(managuaDay());
 
   const onLogout = async () => {
     await logout();
@@ -36,7 +35,7 @@ export function Topbar() {
   };
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b bg-card px-4">
+    <header className="flex h-16 shrink-0 items-center gap-3 border-b bg-card/80 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
       <Button
         variant="ghost"
         size="icon"
@@ -46,20 +45,30 @@ export function Topbar() {
       >
         <Menu />
       </Button>
-      <div className="flex-1" />
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggle}
-        aria-label={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
-      >
-        {theme === 'dark' ? <Sun /> : <Moon />}
-      </Button>
+      <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+        {section && (
+          <>
+            <span className="hidden text-muted-foreground sm:inline">{section.group}</span>
+            <span aria-hidden="true" className="hidden text-input sm:inline">
+              /
+            </span>
+            <span className="truncate font-medium">{section.label}</span>
+          </>
+        )}
+      </div>
+      <p className="hidden items-center gap-2 rounded-lg border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-xs lg:flex">
+        <CalendarDays className="size-3.5" aria-hidden="true" />
+        <span className="first-letter:uppercase">{today}</span>
+      </p>
       {user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-10 gap-2 px-2" aria-label="Menú de usuario">
-              <span className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+            <Button
+              variant="ghost"
+              className="h-10 gap-2.5 px-2 text-foreground"
+              aria-label="Menú de usuario"
+            >
+              <span className="flex size-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground ring-1 ring-primary/15">
                 {initials(user.fullName)}
               </span>
               <span className="hidden text-left leading-tight sm:block">

@@ -12,6 +12,10 @@ import {
   Users,
 } from 'lucide-react';
 
+export type NavGroup = 'Trabajo diario' | 'Seguimiento' | 'Administración';
+
+export const NAV_GROUPS: readonly NavGroup[] = ['Trabajo diario', 'Seguimiento', 'Administración'];
+
 export interface NavItem {
   to:
     | '/mi-semana'
@@ -25,20 +29,27 @@ export interface NavItem {
     | '/usuarios';
   label: string;
   icon: LucideIcon;
+  group: NavGroup;
   /** Si se omite, visible para todos los roles. */
   roles?: readonly UserRole[];
 }
 
 export const NAV_ITEMS: readonly NavItem[] = [
-  { to: '/mi-semana', label: 'Mi semana', icon: CalendarCheck },
-  { to: '/pipeline', label: 'Pipeline', icon: KanbanSquare },
-  { to: '/empresas', label: 'Empresas', icon: Building2 },
-  { to: '/cartera', label: 'Cartera', icon: Briefcase },
-  { to: '/citas', label: 'Citas', icon: CalendarDays },
-  { to: '/contratos', label: 'Contratos', icon: FileSignature },
-  { to: '/tablero', label: 'Tablero', icon: LayoutDashboard },
-  { to: '/importacion', label: 'Importación', icon: Upload, roles: ['ADMIN'] },
-  { to: '/usuarios', label: 'Usuarios', icon: Users, roles: ['ADMIN'] },
+  { to: '/mi-semana', label: 'Mi semana', icon: CalendarCheck, group: 'Trabajo diario' },
+  { to: '/pipeline', label: 'Pipeline', icon: KanbanSquare, group: 'Trabajo diario' },
+  { to: '/empresas', label: 'Empresas', icon: Building2, group: 'Trabajo diario' },
+  { to: '/cartera', label: 'Cartera', icon: Briefcase, group: 'Trabajo diario' },
+  { to: '/citas', label: 'Citas', icon: CalendarDays, group: 'Seguimiento' },
+  { to: '/contratos', label: 'Contratos', icon: FileSignature, group: 'Seguimiento' },
+  { to: '/tablero', label: 'Tablero', icon: LayoutDashboard, group: 'Seguimiento' },
+  {
+    to: '/importacion',
+    label: 'Importación',
+    icon: Upload,
+    group: 'Administración',
+    roles: ['ADMIN'],
+  },
+  { to: '/usuarios', label: 'Usuarios', icon: Users, group: 'Administración', roles: ['ADMIN'] },
 ];
 
 export function navForRole(role: UserRole | undefined): NavItem[] {

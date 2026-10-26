@@ -119,6 +119,7 @@ describe('KpiTiles', () => {
     const bar = within(compliance).getByRole('progressbar');
     expect(bar.getAttribute('aria-valuenow')).toBe('100');
     expect(bar.getAttribute('aria-valuetext')).toBe('112.5 %');
+    expect(bar.getAttribute('aria-valuemax')).toBe('100');
 
     const contracts = screen.getByTestId('kpi-contracts');
     expect(contracts.textContent).toContain('C$ 1,500,000.50');
@@ -241,6 +242,47 @@ describe('tabla de ejecutivos', () => {
   });
 });
 
+describe('tabla de ejecutivos: búsqueda y paginación', () => {
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      userId: i + 1,
+      fullName: `Ejecutivo ${String(i + 1).padStart(2, '0')}`,
+      assigned: 100,
+      contactedThisWeek: i,
+      weeklyQuota: 20,
+      quotaPct: i * 5,
+      contactedThisCycle: 30,
+      cycleCoveragePct: 30,
+      statusAdvancesThisWeek: 0,
+      appointmentsThisWeek: 0,
+      contractsActive: 0,
+    }));
+
+  test('pagina de 10 en 10 y la búsqueda filtra por nombre sin tildes', async () => {
+    const data: ExecutivesDto = {
+      week: { start: '2026-10-19', end: '2026-10-25' },
+      cycle: null,
+      executives: [
+        ...many(12),
+        ...many(1).map((e) => ({ ...e, userId: 99, fullName: 'José Martínez' })),
+      ],
+    };
+    render(<ExecutivesCard data={data} />);
+    const bodyRows = () => screen.getAllByRole('row').slice(1);
+    expect(bodyRows()).toHaveLength(10);
+    expect(screen.getByText(/1–10 de 13 ejecutivos/)).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Página 2' }));
+    expect(bodyRows()).toHaveLength(3);
+    await user.type(screen.getByLabelText('Buscar ejecutivo…'), 'jose');
+    expect(bodyRows()).toHaveLength(1);
+    expect(bodyRows()[0]?.textContent).toContain('José Martínez');
+    await user.clear(screen.getByLabelText('Buscar ejecutivo…'));
+    await user.type(screen.getByLabelText('Buscar ejecutivo…'), 'nadie');
+    expect(screen.getByText('Ningún ejecutivo coincide con la búsqueda.')).toBeTruthy();
+  });
+});
+
 describe('pivotExecutives', () => {
   test('agrupa en "Otros" a partir del sexto ejecutivo', () => {
     const weeks = [
@@ -350,9 +392,11 @@ describe('DashboardPage', () => {
   test('cambiar el ejecutivo vuelve a pedir los datos con userId y lo deja en la URL', async () => {
     mocked = mockFetch(handler());
     const router = await mountApp('/tablero', 'SUPERVISOR');
-    const select = await screen.findByLabelText('Ejecutivo');
-    await waitFor(() => expect(within(select).getByText('Ana Ejecutiva')).toBeTruthy());
-    await userEvent.setup().selectOptions(select, '2');
+    const user = userEvent.setup();
+    // Espera a que el catálogo de ejecutivos esté cargado (tabla del tablero).
+    await screen.findByText('Ejecutivos');
+    await user.click(await screen.findByLabelText('Ejecutivo'));
+    await user.click(await screen.findByRole('option', { name: 'Ana Ejecutiva' }));
     await waitFor(() =>
       expect(
         mocked.calls.some(

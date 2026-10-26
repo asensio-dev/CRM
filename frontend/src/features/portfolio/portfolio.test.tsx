@@ -13,9 +13,11 @@ import { jsonResponse, mockFetch, mountApp, type RecordedCall } from '@/test/hel
 
 let mocked: ReturnType<typeof mockFetch> | undefined;
 let noCycle = false;
+let execList: ExecutiveCoverageDto[] | undefined;
 afterEach(() => {
   mocked?.restore();
   noCycle = false;
+  execList = undefined;
 });
 
 const weekInfo: WeekInfoDto = {
@@ -76,7 +78,7 @@ function baseHandler(extra?: (call: RecordedCall) => Response | undefined) {
       return jsonResponse(
         noCycle
           ? { week: null, executives: [] }
-          : ({ week: weekInfo, executives } satisfies CurrentCycleDto),
+          : ({ week: weekInfo, executives: execList ?? executives } satisfies CurrentCycleDto),
       );
     }
     if (url.pathname === '/api/portfolio/assignments' && call.method === 'GET') {
@@ -89,6 +91,12 @@ function baseHandler(extra?: (call: RecordedCall) => Response | undefined) {
     }
     return extra?.(call);
   };
+}
+
+/** Elige una opción de un selector con búsqueda (Combobox en un popover). */
+async function pick(u: ReturnType<typeof userEvent.setup>, trigger: HTMLElement, name: RegExp) {
+  await u.click(trigger);
+  await u.click(await screen.findByRole('option', { name }));
 }
 
 const posts = () => mocked?.calls.filter((c) => c.method === 'POST') ?? [];
@@ -167,9 +175,14 @@ describe('Cartera: lectura', () => {
     rows = [assignment(1)];
     mocked = mockFetch(baseHandler());
     await mountApp('/cartera', 'ADMIN');
-    const select = await screen.findByLabelText('Filtrar por ejecutivo');
-    await waitFor(() => expect(within(select).getAllByRole('option').length).toBe(4));
-    await userEvent.setup().selectOptions(select, '3');
+    const u = userEvent.setup();
+    await screen.findByText('Ciclo #4');
+    await u.click(screen.getByRole('button', { name: 'Filtrar por ejecutivo' }));
+    const listbox = await screen.findByRole('listbox');
+    expect(within(listbox).getAllByRole('option')).toHaveLength(3);
+    await u.type(screen.getByRole('combobox', { name: 'Buscar ejecutivo…' }), 'bruno');
+    expect(within(listbox).getAllByRole('option')).toHaveLength(1);
+    await u.click(screen.getByRole('option', { name: 'Bruno Ejecutivo' }));
     await waitFor(() =>
       expect(
         mocked?.calls.some(
@@ -232,7 +245,7 @@ describe('Cartera: reasignar', () => {
     expect(await within(dialog).findByText('Selecciona el ejecutivo destino.')).toBeTruthy();
     expect(posts()).toHaveLength(0);
 
-    await u.selectOptions(within(dialog).getByLabelText('Ejecutivo destino'), '3');
+    await pick(u, within(dialog).getByLabelText('Ejecutivo destino'), /Bruno Ejecutivo/);
     await u.click(within(dialog).getByRole('button', { name: 'Reasignar' }));
 
     expect((await within(dialog).findByTestId('result-assigned')).textContent).toBe('2');
@@ -272,7 +285,7 @@ describe('Cartera: reasignar', () => {
     );
     await u.click(screen.getByRole('button', { name: /Reasignar a/ }));
     const dialog = await screen.findByRole('dialog');
-    await u.selectOptions(within(dialog).getByLabelText('Ejecutivo destino'), '2');
+    await pick(u, within(dialog).getByLabelText('Ejecutivo destino'), /Ana Ejecutiva/);
     await u.click(within(dialog).getByRole('button', { name: 'Reasignar' }));
     expect(await screen.findByText(/no es un ejecutivo activo/)).toBeTruthy();
     expect(screen.getByRole('dialog')).toBeTruthy();
@@ -356,11 +369,8 @@ describe('Cartera: asignación masiva y rotación', () => {
     expect(within(dialog).getByText('Selecciona el ejecutivo destino.')).toBeTruthy();
     expect(posts()).toHaveLength(0);
 
-    await u.selectOptions(within(dialog).getByLabelText('Ejecutivo destino'), '3');
-    await waitFor(() =>
-      expect(within(dialog).getByRole('option', { name: 'Comercio' })).toBeTruthy(),
-    );
-    await u.selectOptions(within(dialog).getByLabelText('Sector (opcional)'), '4');
+    await pick(u, within(dialog).getByLabelText('Ejecutivo destino'), /Bruno Ejecutivo/);
+    await pick(u, within(dialog).getByLabelText('Sector (opcional)'), /Comercio/);
     await u.type(within(dialog).getByLabelText('Mínimo de empleados'), '50');
     await u.clear(within(dialog).getByLabelText('Cantidad máxima'));
     await u.type(within(dialog).getByLabelText('Cantidad máxima'), '25');
@@ -388,7 +398,7 @@ describe('Cartera: asignación masiva y rotación', () => {
     const u = userEvent.setup();
     await u.click(await screen.findByRole('button', { name: /Asignación masiva/ }));
     const dialog = await screen.findByRole('dialog');
-    await u.selectOptions(within(dialog).getByLabelText('Ejecutivo destino'), '2');
+    await pick(u, within(dialog).getByLabelText('Ejecutivo destino'), /Ana Ejecutiva/);
     await u.click(within(dialog).getByRole('button', { name: 'Asignar' }));
     expect(await screen.findByText(/No hay un ciclo de rotación activo/)).toBeTruthy();
   });
@@ -428,5 +438,140 @@ describe('Cartera: asignación masiva y rotación', () => {
     expect(summary.textContent).toContain('faltaron 4');
     expect(summary.textContent).toContain('3 generados, 1 ya existían');
     expect(posts()).toHaveLength(1);
+  });
+});
+
+describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
+  test('tira de 21 días con las semanas rotuladas y KPIs derivados de la cobertura', async () => {
+    rows = [assignment(1)];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+    await screen.findByText('Ciclo #4');
+    expect(screen.getAllByTestId('cycle-day')).toHaveLength(21);
+    for (const n of [1, 2, 3]) expect(screen.getByText(`Semana ${n}`)).toBeTruthy();
+
+    // 3 ejecutivos × 60 asignadas, 30 contactadas cada uno.
+    expect(screen.getByTestId('stat-assigned').textContent).toBe('180');
+    expect(screen.getByTestId('stat-executives').textContent).toBe('3');
+    expect(screen.getByTestId('stat-coverage').textContent).toBe('50%');
+    expect(screen.getByTestId('stat-untouched').textContent).toBe('90');
+  });
+
+  test('EJECUTIVO: los KPIs no muestran el total de ejecutivos', async () => {
+    rows = [assignment(1, { userId: 1, userName: 'Ana Pérez' })];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'EJECUTIVO');
+    await screen.findByTestId('portfolio-stats');
+    expect(screen.queryByTestId('stat-executives')).toBeNull();
+    expect(screen.getByTestId('stat-assigned').textContent).toBe('60');
+    expect(screen.getByText('Tu avance')).toBeTruthy();
+  });
+
+  test('muchos ejecutivos: buscador y paginación de las filas de rendimiento', async () => {
+    rows = [assignment(1)];
+    execList = Array.from({ length: 11 }, (_, i) => exec(i + 1, `Ejecutivo ${i + 1}`));
+    execList.push(exec(50, 'Zoila Rendón'));
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+    const u = userEvent.setup();
+    await screen.findByText('Ciclo #4');
+    expect(screen.getAllByTestId(/^exec-/)).toHaveLength(8);
+    expect(screen.getByText('1–8 de 12 ejecutivos')).toBeTruthy();
+
+    await u.click(screen.getAllByRole('button', { name: 'Página siguiente' })[0] as HTMLElement);
+    expect(screen.getAllByTestId(/^exec-/)).toHaveLength(4);
+    expect(screen.getByTestId('exec-50')).toBeTruthy();
+
+    await u.type(screen.getByRole('searchbox', { name: 'Buscar ejecutivo…' }), 'zoila rendon');
+    expect(screen.getAllByTestId(/^exec-/)).toHaveLength(1);
+    expect(screen.getByTestId('exec-50')).toBeTruthy();
+
+    await u.clear(screen.getByRole('searchbox', { name: 'Buscar ejecutivo…' }));
+    await u.type(screen.getByRole('searchbox', { name: 'Buscar ejecutivo…' }), 'nadie');
+    expect(screen.getByText('Ningún ejecutivo coincide')).toBeTruthy();
+  });
+
+  test('pocos ejecutivos: sin buscador ni paginación en el rendimiento', async () => {
+    rows = [assignment(1)];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+    await screen.findByText('Ciclo #4');
+    expect(screen.queryByRole('searchbox', { name: 'Buscar ejecutivo…' })).toBeNull();
+    expect(screen.queryByText(/de 3 ejecutivos/)).toBeNull();
+  });
+
+  test('asignaciones: filas por página vuelve a pedir con pageSize y la búsqueda filtra la página', async () => {
+    rows = [
+      assignment(1, { legalName: 'Distribuidora Ñandú S.A.' }),
+      assignment(2),
+      assignment(3, { tradeName: 'Ferretería Central' }),
+    ];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+    const u = userEvent.setup();
+    await screen.findAllByText('Empresa 2 S.A.');
+    const first = mocked.calls.find((c) => c.url.pathname === '/api/portfolio/assignments');
+    expect(first?.url.searchParams.get('pageSize')).toBe('25');
+    expect(screen.getByText('1–3 de 3 empresas')).toBeTruthy();
+
+    await u.selectOptions(screen.getByLabelText('Filas por página'), '50');
+    await waitFor(() =>
+      expect(
+        mocked?.calls.some(
+          (c) =>
+            c.url.pathname === '/api/portfolio/assignments' &&
+            c.url.searchParams.get('pageSize') === '50',
+        ),
+      ).toBe(true),
+    );
+
+    const search = screen.getByRole('searchbox', { name: 'Buscar en las empresas de esta página' });
+    await u.type(search, 'nandu');
+    expect(screen.getAllByText('Distribuidora Ñandú S.A.').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Empresa 2 S.A.')).toHaveLength(0);
+
+    await u.clear(search);
+    await u.type(search, 'ferreteria');
+    expect(screen.getAllByText('Ferretería Central').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Distribuidora Ñandú S.A.')).toHaveLength(0);
+
+    await u.clear(search);
+    await u.type(search, 'zzzz');
+    expect(screen.getByText('Ninguna empresa de esta página coincide')).toBeTruthy();
+    await u.click(screen.getByText('Limpiar búsqueda'));
+    expect(screen.getAllByText('Empresa 2 S.A.').length).toBeGreaterThan(0);
+  });
+
+  test('reasignar: la lista de empresas seleccionadas se pagina y se puede buscar', async () => {
+    rows = Array.from({ length: 8 }, (_, i) => assignment(i + 1));
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+    const u = userEvent.setup();
+    await screen.findAllByText('Empresa 1 S.A.');
+    await u.click(
+      screen.getAllByRole('checkbox', {
+        name: 'Seleccionar todas las de esta página',
+      })[0] as HTMLElement,
+    );
+    expect(screen.getByText('8 seleccionadas')).toBeTruthy();
+    await u.click(screen.getByRole('button', { name: /Reasignar a/ }));
+    const dialog = await screen.findByRole('dialog');
+    const list = within(dialog).getByRole('list', { name: 'Empresas seleccionadas' });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(6);
+    await u.click(within(dialog).getByRole('button', { name: 'Página siguiente' }));
+    expect(
+      within(within(dialog).getByRole('list', { name: 'Empresas seleccionadas' })).getAllByRole(
+        'listitem',
+      ),
+    ).toHaveLength(2);
+    await u.type(
+      within(dialog).getByRole('searchbox', { name: 'Buscar en empresas seleccionadas' }),
+      'Empresa 7',
+    );
+    expect(
+      within(within(dialog).getByRole('list', { name: 'Empresas seleccionadas' })).getAllByRole(
+        'listitem',
+      ),
+    ).toHaveLength(1);
   });
 });
