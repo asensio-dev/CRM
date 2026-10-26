@@ -108,7 +108,8 @@ export class InMemoryCompanyRepository implements CompanyReader, CompanyWriter {
       const kb = keyOf(b);
       if (ka < kb) return -dir;
       if (ka > kb) return dir;
-      return (a.id as number) - (b.id as number);
+      // Desempate por id en la misma dirección (igual que PrismaCompanyReader)
+      return ((a.id as number) - (b.id as number)) * dir;
     });
     const start = (criteria.page - 1) * criteria.pageSize;
     return {
