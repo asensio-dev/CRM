@@ -1,0 +1,409 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-25T23:30:00Z",
+  "title": "Design System: AXIOM CRM",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Axiom Blue",
+        "canonical": "#2a62f2",
+        "tonalRamp": [
+          "oklch(15% 0.06 264)",
+          "oklch(27% 0.12 264)",
+          "oklch(39% 0.18 264)",
+          "oklch(51% 0.21 264)",
+          "oklch(56% 0.21 264)",
+          "oklch(70% 0.14 264)",
+          "oklch(84% 0.07 264)",
+          "oklch(95% 0.02 264)"
+        ]
+      },
+      "ring": { "role": "primary", "displayName": "Focus Blue", "canonical": "#2a62f2" },
+      "fill": {
+        "role": "primary",
+        "displayName": "Glow Fill",
+        "canonical": "#3b74ff",
+        "tonalRamp": [
+          "oklch(15% 0.06 263)",
+          "oklch(28% 0.12 263)",
+          "oklch(41% 0.18 263)",
+          "oklch(53% 0.21 263)",
+          "oklch(60% 0.21 263)",
+          "oklch(72% 0.14 263)",
+          "oklch(85% 0.07 263)",
+          "oklch(95% 0.02 263)"
+        ]
+      },
+      "fill-soft": { "role": "primary", "displayName": "Soft Fill", "canonical": "#9fbcff" },
+      "track": { "role": "primary", "displayName": "Pale Lane", "canonical": "#edf2ff" },
+      "accent": { "role": "primary", "displayName": "Blue Mist", "canonical": "#ecf2ff" },
+      "accent-foreground": {
+        "role": "primary",
+        "displayName": "Deep Blue Ink",
+        "canonical": "#1d4ed0"
+      },
+      "wash": { "role": "primary", "displayName": "Morning Wash", "canonical": "#e6eeff" },
+      "background": {
+        "role": "neutral",
+        "displayName": "Cool Ground",
+        "canonical": "#f4f6fa",
+        "tonalRamp": [
+          "oklch(15% 0.02 262)",
+          "oklch(26% 0.025 262)",
+          "oklch(38% 0.025 262)",
+          "oklch(50% 0.025 262)",
+          "oklch(62% 0.02 262)",
+          "oklch(75% 0.015 262)",
+          "oklch(88% 0.01 262)",
+          "oklch(97% 0.006 262)"
+        ]
+      },
+      "card": { "role": "neutral", "displayName": "Sheet White", "canonical": "#ffffff" },
+      "sidebar": { "role": "neutral", "displayName": "Rail White", "canonical": "#fbfcfe" },
+      "foreground": { "role": "neutral", "displayName": "Night Ink", "canonical": "#101828" },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Slate Mute",
+        "canonical": "#5a6478"
+      },
+      "muted": { "role": "neutral", "displayName": "Fog", "canonical": "#eef1f6" },
+      "border": { "role": "neutral", "displayName": "Hairline", "canonical": "#e4e8f0" },
+      "input": { "role": "neutral", "displayName": "Field Line", "canonical": "#d6dce7" },
+      "scrim": { "role": "neutral", "displayName": "Scrim", "canonical": "#0b1220" },
+      "destructive": {
+        "role": "tertiary",
+        "displayName": "Signal Red",
+        "canonical": "#d93a40",
+        "tonalRamp": [
+          "oklch(15% 0.05 22)",
+          "oklch(28% 0.1 22)",
+          "oklch(41% 0.15 22)",
+          "oklch(53% 0.18 22)",
+          "oklch(58% 0.19 22)",
+          "oklch(72% 0.12 22)",
+          "oklch(85% 0.06 22)",
+          "oklch(95% 0.02 22)"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Ledger Green",
+        "canonical": "#12875a",
+        "tonalRamp": [
+          "oklch(15% 0.04 160)",
+          "oklch(28% 0.08 160)",
+          "oklch(41% 0.11 160)",
+          "oklch(54% 0.12 160)",
+          "oklch(64% 0.12 160)",
+          "oklch(76% 0.09 160)",
+          "oklch(87% 0.05 160)",
+          "oklch(96% 0.02 160)"
+        ]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Amber",
+        "canonical": "#b86e05",
+        "tonalRamp": [
+          "oklch(15% 0.04 65)",
+          "oklch(28% 0.08 65)",
+          "oklch(42% 0.11 65)",
+          "oklch(57% 0.13 65)",
+          "oklch(68% 0.14 65)",
+          "oklch(79% 0.11 65)",
+          "oklch(89% 0.06 65)",
+          "oklch(97% 0.02 65)"
+        ]
+      },
+      "chart-2": {
+        "role": "secondary",
+        "displayName": "Series Orange",
+        "canonical": "oklch(0.66 0.17 55)"
+      },
+      "chart-3": {
+        "role": "secondary",
+        "displayName": "Series Teal",
+        "canonical": "oklch(0.58 0.12 190)"
+      },
+      "chart-4": {
+        "role": "secondary",
+        "displayName": "Series Magenta",
+        "canonical": "oklch(0.55 0.2 340)"
+      },
+      "chart-5": {
+        "role": "secondary",
+        "displayName": "Series Olive",
+        "canonical": "oklch(0.7 0.15 100)"
+      },
+      "chart-6": {
+        "role": "secondary",
+        "displayName": "Series Slate",
+        "canonical": "oklch(0.55 0.03 260)"
+      },
+      "dark-background": {
+        "role": "neutral",
+        "displayName": "Night Ground",
+        "canonical": "#0c111d"
+      },
+      "dark-card": { "role": "neutral", "displayName": "Night Sheet", "canonical": "#131a2a" },
+      "dark-primary": {
+        "role": "primary",
+        "displayName": "Axiom Blue (night)",
+        "canonical": "#5b8bff"
+      },
+      "dark-track": {
+        "role": "primary",
+        "displayName": "Pale Lane (night)",
+        "canonical": "#18213a"
+      },
+      "dark-fill-soft": {
+        "role": "primary",
+        "displayName": "Soft Fill (night)",
+        "canonical": "#2c4a9a"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page title in the page header; balanced wrap."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Big tabular number on KPI and stat tiles (1.9rem, 1.75rem, 1.25rem by tile size)."
+      },
+      "title-lg": {
+        "displayName": "Title Large",
+        "purpose": "Section title inside a card (cycle panel)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card titles; dialog titles step up to 1.125rem."
+      },
+      "body": { "displayName": "Body", "purpose": "Tables, forms, nav, descriptions." },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Table headers, badges, hints, pagination counts, sidebar group names; sentence case."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-color",
+        "value": "220 40% 20% (light) / 225 50% 2% (dark)",
+        "purpose": "HSL triplet token that tints every shadow."
+      },
+      {
+        "name": "xs",
+        "value": "0 1px 2px hsl(var(--shadow-color) / 0.05)",
+        "purpose": "Inputs, outline buttons, date chip, current page."
+      },
+      {
+        "name": "sm",
+        "value": "0 1px 2px hsl(var(--shadow-color) / 0.04), 0 2px 6px -1px hsl(var(--shadow-color) / 0.06)",
+        "purpose": "Resting cards, active nav pill, switch knob."
+      },
+      {
+        "name": "md",
+        "value": "0 2px 4px hsl(var(--shadow-color) / 0.04), 0 8px 20px -4px hsl(var(--shadow-color) / 0.1)",
+        "purpose": "Tooltips, login hero card."
+      },
+      {
+        "name": "lg",
+        "value": "0 4px 8px hsl(var(--shadow-color) / 0.05), 0 18px 40px -8px hsl(var(--shadow-color) / 0.16)",
+        "purpose": "Popovers, menus, dialogs, mobile drawer."
+      },
+      {
+        "name": "primary-lift",
+        "value": "0 1px 2px hsl(225 80% 30% / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.14)",
+        "purpose": "Primary button only."
+      },
+      {
+        "name": "focus-ring-field",
+        "value": "0 0 0 3px color-mix(in oklab, var(--ring) 20%, transparent)",
+        "purpose": "Focus halo on inputs, selects, combobox triggers (border turns primary)."
+      },
+      {
+        "name": "focus-ring-control",
+        "value": "0 0 0 2px var(--background), 0 0 0 4px var(--ring)",
+        "purpose": "Focus ring on buttons (2px ring, 2px offset)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "duration-ui",
+        "value": "200ms",
+        "purpose": "Rail collapse width, theme-switch knob."
+      },
+      {
+        "name": "duration-fill",
+        "value": "700ms ease-out",
+        "purpose": "Meter and funnel fill width."
+      },
+      { "name": "press", "value": "translateY(1px) on :active", "purpose": "Button press." },
+      { "name": "tooltip-delay", "value": "200ms", "purpose": "Tooltip open delay." },
+      {
+        "name": "reduced-motion",
+        "value": "animation/transition-duration 0.01ms",
+        "purpose": "prefers-reduced-motion collapses all motion."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ],
+    "gradients": [
+      {
+        "name": "bg-fill-fade",
+        "value": "linear-gradient(to right, var(--fill-soft), var(--fill))",
+        "purpose": "Horizontal ghost-track fill (meters)."
+      },
+      {
+        "name": "bg-fill-fade-y",
+        "value": "linear-gradient(to top, var(--fill), var(--fill-soft))",
+        "purpose": "Vertical ghost-track fill (cycle days, login bars)."
+      },
+      {
+        "name": "bg-workspace",
+        "value": "radial-gradient(90rem 26rem at 85% -12rem, var(--wash), transparent 70%)",
+        "purpose": "Morning wash at the top of the main area."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one filled blue action per view.",
+      "html": "<button class=\"ds-btn ds-btn-primary\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Nuevo contrato</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 16px; border-radius: 0.625rem; border: 0; font: 500 0.875rem/1.25rem 'Onest Variable', ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: background-color .15s, box-shadow .15s, transform .15s, color .15s; } .ds-btn:active { transform: translateY(1px); } .ds-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--background, #f4f6fa), 0 0 0 4px var(--ring, #2a62f2); } .ds-btn-primary { background: var(--primary, #2a62f2); color: var(--primary-foreground, #fff); box-shadow: 0 1px 2px hsl(225 80% 30% / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.14); } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary, #2a62f2) 92%, transparent); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Neutral action on a white sheet; also the pagination arrows.",
+      "html": "<button class=\"ds-btn-outline\">Limpiar filtros</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border-radius: 0.625rem; border: 1px solid var(--border, #e4e8f0); background: var(--card, #fff); color: var(--foreground, #101828); font: 500 0.875rem/1.25rem 'Onest Variable', ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px hsl(220 40% 20% / 0.05); cursor: pointer; transition: background-color .15s, border-color .15s; } .ds-btn-outline:hover { border-color: var(--input, #d6dce7); background: color-mix(in oklab, var(--muted, #eef1f6) 60%, transparent); } .ds-btn-outline:active { transform: translateY(1px); } .ds-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--background, #f4f6fa), 0 0 0 4px var(--ring, #2a62f2); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Recessive icon or text button in the shell.",
+      "html": "<button class=\"ds-btn-ghost\">Cancelar</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border: 0; border-radius: 0.625rem; background: transparent; color: var(--muted-foreground, #5a6478); font: 500 0.875rem/1.25rem 'Onest Variable', ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: background-color .15s, color .15s; } .ds-btn-ghost:hover { background: var(--muted, #eef1f6); color: var(--foreground, #101828); } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--background, #f4f6fa), 0 0 0 4px var(--ring, #2a62f2); }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "The field every list and catalog opens with; Escape clears.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/></svg><input type=\"search\" placeholder=\"Código o empresa…\" aria-label=\"Buscar\"></label>",
+      "css": ".ds-search { position: relative; display: block; width: 280px; } .ds-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted-foreground, #5a6478); pointer-events: none; } .ds-search input { width: 100%; height: 36px; padding: 0 32px 0 36px; border: 1px solid var(--input, #d6dce7); border-radius: 0.625rem; background: var(--card, #fff); color: var(--foreground, #101828); font: 400 0.875rem/1.25rem 'Onest Variable', ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px hsl(220 40% 20% / 0.05); transition: border-color .15s, box-shadow .15s; } .ds-search input::placeholder { color: var(--muted-foreground, #5a6478); } .ds-search input:hover { border-color: color-mix(in oklab, var(--muted-foreground, #5a6478) 40%, transparent); } .ds-search input:focus-visible { outline: none; border-color: var(--primary, #2a62f2); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, #2a62f2) 20%, transparent); }"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Light rail with sentence-case group names and the raised white active pill.",
+      "html": "<nav class=\"ds-rail\"><p class=\"ds-rail-group\">Comercial</p><a class=\"ds-rail-item ds-active\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"/><path d=\"M3 10h18M8 2v4M16 2v4\"/></svg>Mi semana</a><a class=\"ds-rail-item\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"5\" height=\"18\" rx=\"1\"/><rect x=\"10\" y=\"3\" width=\"5\" height=\"12\" rx=\"1\"/><rect x=\"17\" y=\"3\" width=\"4\" height=\"8\" rx=\"1\"/></svg>Pipeline</a><a class=\"ds-rail-item\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6\"/></svg>Empresas</a></nav>",
+      "css": ".ds-rail { width: 232px; padding: 12px; background: var(--sidebar, #fbfcfe); border-right: 1px solid var(--sidebar-border, #e6eaf1); font-family: 'Onest Variable', ui-sans-serif, system-ui, sans-serif; } .ds-rail-group { margin: 0; padding: 0 12px 6px; font-size: 0.75rem; font-weight: 500; color: color-mix(in oklab, var(--sidebar-muted, #5a6478) 80%, transparent); } .ds-rail-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-bottom: 2px; border: 1px solid transparent; border-radius: 0.625rem; color: var(--sidebar-muted, #5a6478); font-size: 0.875rem; font-weight: 500; text-decoration: none; transition: color .15s, background-color .15s, box-shadow .15s; } .ds-rail-item:hover { background: color-mix(in oklab, var(--sidebar-accent, #fff) 70%, transparent); color: var(--sidebar-foreground, #1b2433); } .ds-rail-item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--ring, #2a62f2); } .ds-rail-item.ds-active { background: var(--sidebar-accent, #fff); border-color: var(--sidebar-border, #e6eaf1); color: var(--sidebar-foreground, #1b2433); box-shadow: 0 1px 2px hsl(220 40% 20% / 0.04), 0 2px 6px -1px hsl(220 40% 20% / 0.06); } .ds-rail-item.ds-active svg { color: var(--primary, #2a62f2); }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Pipeline stage: tinted outline badge with a solid dot (two of eight stages shown).",
+      "html": "<span class=\"ds-status ds-status-contactado\"><i></i>Contactado</span> <span class=\"ds-status ds-status-activo\"><i></i>Contrato activo</span>",
+      "css": ".ds-status { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid; border-radius: 0.5rem; font: 500 0.75rem/1rem 'Onest Variable', ui-sans-serif, system-ui, sans-serif; white-space: nowrap; } .ds-status i { width: 6px; height: 6px; border-radius: 9999px; } .ds-status-contactado { background: #e0f2fe; color: #075985; border-color: #bae6fd; } .ds-status-contactado i { background: #0ea5e9; } .ds-status-activo { background: #d1fae5; color: #065f46; border-color: #a7f3d0; } .ds-status-activo i { background: #10b981; }"
+    },
+    {
+      "name": "Stat Tile with Meter",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "White sheet with tabular figure and a ghost-track meter.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-label\">Cobertura del ciclo</p><p class=\"ds-card-figure\">62%</p><div class=\"ds-meter\" role=\"progressbar\" aria-valuenow=\"62\" aria-valuemin=\"0\" aria-valuemax=\"100\" aria-label=\"Cobertura\"><div style=\"width:62%\"></div></div><p class=\"ds-card-note\">37 de 60 con interacción</p></div>",
+      "css": ".ds-card { width: 260px; padding: 20px; display: grid; gap: 6px; background: var(--card, #fff); color: var(--card-foreground, #101828); border: 1px solid var(--border, #e4e8f0); border-radius: 0.875rem; box-shadow: 0 1px 2px hsl(220 40% 20% / 0.04), 0 2px 6px -1px hsl(220 40% 20% / 0.06); font-family: 'Onest Variable', ui-sans-serif, system-ui, sans-serif; } .ds-card-label { margin: 0; font-size: 0.875rem; color: var(--muted-foreground, #5a6478); } .ds-card-figure { margin: 0; font-size: 1.75rem; font-weight: 600; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; } .ds-card-note { margin: 4px 0 0; font-size: 0.75rem; color: var(--muted-foreground, #5a6478); font-variant-numeric: tabular-nums; } .ds-meter { margin-top: 6px; height: 6px; border-radius: 9999px; overflow: hidden; background: var(--track, #edf2ff); } .ds-meter > div { height: 100%; border-radius: 9999px; background-image: linear-gradient(to right, var(--fill-soft, #9fbcff), var(--fill, #3b74ff)); transition: width .7s ease-out; }"
+    },
+    {
+      "name": "21-day Cycle Strip",
+      "kind": "custom",
+      "refersTo": "cycle-day",
+      "description": "Signature ghost track: one column per day on a full-height pale lane; today ringed and partly filled.",
+      "html": "<div class=\"ds-cycle\"><div class=\"ds-week\"><div class=\"ds-days\"><span class=\"ds-day\"><b style=\"height:100%\"></b></span><span class=\"ds-day\"><b style=\"height:100%\"></b></span><span class=\"ds-day\"><b style=\"height:100%\"></b></span><span class=\"ds-day\"><b style=\"height:100%\"></b></span><span class=\"ds-day\"><b style=\"height:100%\"></b></span><span class=\"ds-day\"><b style=\"height:100%\"></b></span><span class=\"ds-day\"><b style=\"height:100%\"></b></span></div><p>Semana 1</p></div><div class=\"ds-week ds-current\"><div class=\"ds-days\"><span class=\"ds-day\"><b style=\"height:100%\"></b></span><span class=\"ds-day\"><b style=\"height:100%\"></b></span><span class=\"ds-day ds-today\"><b style=\"height:55%\"></b></span><span class=\"ds-day\"></span><span class=\"ds-day\"></span><span class=\"ds-day\"></span><span class=\"ds-day\"></span></div><p>Semana 2</p></div><div class=\"ds-week\"><div class=\"ds-days\"><span class=\"ds-day\"></span><span class=\"ds-day\"></span><span class=\"ds-day\"></span><span class=\"ds-day\"></span><span class=\"ds-day\"></span><span class=\"ds-day\"></span><span class=\"ds-day\"></span></div><p>Semana 3</p></div></div>",
+      "css": ".ds-cycle { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; width: 560px; padding: 20px; background: var(--card, #fff); border: 1px solid var(--border, #e4e8f0); border-radius: 0.875rem; font-family: 'Onest Variable', ui-sans-serif, system-ui, sans-serif; } .ds-week { display: grid; gap: 8px; } .ds-week p { margin: 0; font-size: 0.75rem; font-weight: 500; color: var(--muted-foreground, #5a6478); } .ds-week.ds-current p { color: var(--foreground, #101828); } .ds-days { display: flex; gap: 4px; height: 80px; } .ds-day { position: relative; flex: 1; overflow: hidden; border-radius: 5px; background: var(--track, #edf2ff); } .ds-day b { position: absolute; left: 0; right: 0; bottom: 0; background-image: linear-gradient(to top, var(--fill, #3b74ff), var(--fill-soft, #9fbcff)); } .ds-day.ds-today { box-shadow: 0 0 0 2px var(--card, #fff), 0 0 0 4px var(--primary, #2a62f2); }"
+    },
+    {
+      "name": "Pagination",
+      "kind": "nav",
+      "refersTo": "pagination-page-current",
+      "description": "Full pagination bar at the foot of every list card.",
+      "html": "<nav class=\"ds-pager\" aria-label=\"Paginación\"><p>1–25 de 1.240 empresas</p><div><button class=\"ds-pg-arrow\" aria-label=\"Página anterior\" disabled>‹</button><button class=\"ds-pg ds-pg-current\" aria-current=\"page\">1</button><button class=\"ds-pg\">2</button><button class=\"ds-pg\">3</button><span>…</span><button class=\"ds-pg\">50</button><button class=\"ds-pg-arrow\" aria-label=\"Página siguiente\">›</button></div></nav>",
+      "css": ".ds-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; width: 560px; padding: 12px 16px; border-top: 1px solid var(--border, #e4e8f0); background: var(--card, #fff); font: 400 0.875rem/1.25rem 'Onest Variable', ui-sans-serif, system-ui, sans-serif; color: var(--muted-foreground, #5a6478); } .ds-pager p { margin: 0; font-variant-numeric: tabular-nums; } .ds-pager div { display: flex; align-items: center; gap: 4px; } .ds-pager span { width: 24px; text-align: center; } .ds-pg { height: 36px; min-width: 36px; padding: 0 8px; border: 0; border-radius: 0.625rem; background: transparent; color: var(--muted-foreground, #5a6478); font: 500 0.875rem/1 inherit; font-variant-numeric: tabular-nums; cursor: pointer; transition: background-color .15s, color .15s; } .ds-pg:hover { background: var(--muted, #eef1f6); color: var(--foreground, #101828); } .ds-pg:focus-visible, .ds-pg-arrow:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--ring, #2a62f2); } .ds-pg-current, .ds-pg-current:hover { background: var(--primary, #2a62f2); color: var(--primary-foreground, #fff); box-shadow: 0 1px 2px hsl(220 40% 20% / 0.05); } .ds-pg-arrow { width: 36px; height: 36px; border: 1px solid var(--border, #e4e8f0); border-radius: 0.625rem; background: var(--card, #fff); color: var(--foreground, #101828); font-size: 1rem; cursor: pointer; box-shadow: 0 1px 2px hsl(220 40% 20% / 0.05); } .ds-pg-arrow:hover { border-color: var(--input, #d6dce7); background: color-mix(in oklab, var(--muted, #eef1f6) 60%, transparent); } .ds-pg-arrow:disabled { opacity: .5; cursor: default; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Lit Ledger",
+    "overview": "AXIOM CRM is a working ledger held up to daylight. The ground is a cool, pale blue-grey (Background), work happens on white sheets (Card) separated by hairlines, and a single electric blue taken from the logo's glow marks what is actionable or what is moving. Everything that can be counted is counted in tabular figures, and everything that has a target is drawn on the ghost track: a pale lane the full length of the goal, with a blue fill that fades toward its origin. The ejecutivo reads quota and cycle state before anything else, then finds a company, then pages through the rest.\n\nDensity is that of an operations tool used all day on a laptop or monitor: 14px body, 36px controls, 20px card padding, tables with 12px row rhythm. The shell is quiet (a light rail, a translucent topbar, a faint blue wash at the top of the workspace) so that data carries the colour. Dark mode is not a different world; it is the same ledger at night on #0C111D with every role mirrored.\n\nThis system replaces a dark-navy-sidebar admin shell and refuses the grey-card SaaS kit: surfaces are white on cool ground, not grey on grey, and the rail is light.",
+    "keyCharacteristics": [
+      "Cool light ground, white surfaces, hairline borders, one blue accent.",
+      "Onest Variable throughout, with tabular numerals for every figure.",
+      "Gently rounded, softly lifted surfaces (14px cards, cool-tinted layered shadows).",
+      "The ghost track for quota, coverage, funnels, charts and the 21-day cycle.",
+      "Every list is paged; every catalog is searchable."
+    ],
+    "rules": [
+      {
+        "name": "The One Blue Rule",
+        "body": "Axiom Blue is the only interface accent. Any other hue on screen must encode data (pipeline stage, chart series) or state (destructive, success, warning); none is used for decoration or chrome.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mirror Rule",
+        "body": "Every light token has a dark twin under `.dark`; components reference roles, never literal hex, so both themes come from one component tree.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every number a user compares (table cells, counts, ranges, pagination summaries, dates in strips, KPI values, version) is set in tabular numerals; tables inherit it globally and standalone figures add it explicitly.",
+        "section": "typography"
+      },
+      {
+        "name": "The Paged-Everything Rule",
+        "body": "No view renders an unbounded list. Server-paged tables use the full Pagination (summary, page numbers, rows-per-page of 10/25/50/100); narrow places (kanban columns, combobox popovers) use the compact variant (\"2 / 5\"). When the API returns a complete list (kanban column cards, weekly plan, branches, executive catalogs), paging and search happen client-side through the shared client-list hook, which ignores accents and case and returns to page 1 when the query changes.",
+        "section": "layout"
+      },
+      {
+        "name": "The Find-It-Anywhere Rule",
+        "body": "Every list and catalog has a search field. Selects with a long or growing option set (executives, sectors, cycles) use the searchable select (combobox with search and compact paging, 8 per page); short fixed enums (role, status, currency, mode) stay native selects. Where an endpoint has no search parameter, the search filters only the loaded page, and the screen says so: a muted note under the filter row (\"La búsqueda filtra ... de esta página\") or a \"Filtrar esta página\" placeholder with a \"Nada en esta página coincide\" empty message.",
+        "section": "layout"
+      },
+      {
+        "name": "The Float-Earns-Shadow Rule",
+        "body": "Shadow depth follows layer: inline controls xs, resting sheets sm, transient overlays lg. A resting card never takes md or lg.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep Axiom Blue (#2A62F2 light, #5B8BFF dark) as the only interface accent; use one primary button per view.",
+      "**Do** draw any value measured against a target on the ghost track: Pale Lane underneath, Soft-to-Glow fill on top, solid green only when the goal is reached.",
+      "**Do** set every compared number in tabular numerals.",
+      "**Do** page every list (full Pagination for tables, compact inside columns and popovers) and put a search field on every list and catalog.",
+      "**Do** use the searchable select for long or growing option sets and the client-list hook when the API returns the whole list.",
+      "**Do** tell the user, in a muted note or placeholder, when a search only filters the current page because the endpoint has no search parameter.",
+      "**Do** reference colour roles (background, card, primary, track…) so light and dark stay mirrored.",
+      "**Do** float overlays on the lg shadow and keep resting cards on sm with a hairline."
+    ],
+    "donts": [
+      "**Don't** bring back the dark navy sidebar; the rail is light (Rail White) with a raised white active pill.",
+      "**Don't** build grey cards on grey ground; surfaces are white sheets on Cool Ground separated by hairlines.",
+      "**Don't** use a second hue for chrome or emphasis; non-blue hues are reserved for pipeline stages, chart series and destructive/success/warning state.",
+      "**Don't** render an unbounded list or a long native select.",
+      "**Don't** introduce a second typeface; hierarchy comes from Onest's weights and sizes.",
+      "**Don't** use neutral black shadows in light mode; shadows take the cool shadow-colour token."
+    ]
+  }
+}

@@ -38,3 +38,6 @@ playwright-report/
 logs/
 
 
+
+# Capturas de revisión de diseño (contienen datos reales)
+frontend/.impeccable/review/
