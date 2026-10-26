@@ -45,6 +45,9 @@ Primera versión de producción. CRM de seguimiento comercial sobre unas 127 000
 
 - **Entorno QA tipo producción** con la importación completa de las 127 197 filas reales, la rotación ejecutada y 8 semanas de actividad simulada.
 - **Prueba de carga** reproducible (`backend/scripts/load-test.ts`) y guía de despliegue actualizada con la configuración de producción recomendada.
+- **`SCHEDULER_ENABLED`:** con varias instancias de la API, solo la que lo tenga en `true` ejecuta la rotación semanal y la purga diaria de tokens.
+- **Versión visible:** `/api/health` y Swagger devuelven la versión, y la barra lateral muestra `v1.0.0`.
+- **Lista de comprobación del release** (`docs/release-1.0.0.md`): variables de entorno, pasos de base de datos, pruebas tras desplegar y vuelta atrás.
 
 ### Cambiado
 
@@ -64,6 +67,7 @@ Primera versión de producción. CRM de seguimiento comercial sobre unas 127 000
 - **Móvil:** se corrigieron el desbordamiento horizontal y el doble scroll de la página.
 - **Mi semana:** el resumen de la rotación lanzada desde la pantalla sigue visible aunque el estado vacío desaparezca al refrescarse.
 - **Servicios en segundo plano:** los errores de suscriptores y del job semanal se registran sin mensajes de Prisma.
+- **Errores de importación:** el mensaje guardado en el job ya no incluye el texto crudo del driver (podía contener datos personales); se guarda un mensaje seguro con código.
 
 ### Seguridad
 
@@ -85,7 +89,8 @@ Pendiente, documentado en la revisión de seguridad:
 - Ejecutar siempre con `NODE_ENV=production` detrás de HTTPS (la cookie de renovación y la desactivación de Swagger dependen de ello).
 - Con varias instancias de la API, la invalidación de sesiones y el límite de login son por proceso. Hoy hay una sola instancia y el cron debe correr en una única réplica.
 - Sin límite global de peticiones en endpoints costosos (se recomienda en el proxy).
-- Purga periódica de tokens de renovación caducados.
+
+Cerrado en la Ola 4: purga diaria de tokens de renovación caducados o revocados hace más de 30 días.
 
 ### Rendimiento
 

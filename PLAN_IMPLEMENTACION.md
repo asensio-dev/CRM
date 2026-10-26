@@ -59,7 +59,7 @@ POR_CONTACTAR ──► CONTACTADO ──► SIN_RESPUESTA ──► (reintento)
 | `EN_PROCESO_CONTRATO` | Propuesta / negociación / firma | → `CONTRATO_ACTIVO`, `AGENDANDO_CITA` |
 | `CONTRATO_ACTIVO` | Cliente ganado | (terminal; sale de la rotación) |
 
-- Se recomienda añadir `DESCARTADO` (no interesado / datos inválidos) para que esas empresas salgan de la rotación. **Pendiente de tu confirmación.**
+- `DESCARTADO` (no interesado / datos inválidos) se incluyó: saca a la empresa de la rotación; solo ADMIN/SUPERVISOR pueden reactivarla (ADR 0003).
 - Cada cambio de estado genera un registro en `StatusHistory` (quién, cuándo, desde, hasta, nota) y un evento de dominio `CompanyStatusChanged`.
 - Cualquier transición no listada se rechaza en el dominio (patrón **State**), no en el controlador.
 
@@ -221,7 +221,7 @@ frontend/src/
 **Pantallas clave**
 
 1. **Mi semana** (pantalla principal del ejecutivo): lista de las 20+ empresas del plan, barra `12 / 20 contactadas`, botón rápido "Registrar contacto" que abre un panel con resultado → cambia el estado.
-2. **Pipeline (kanban)**: 6 columnas por estado con conteo, filtros por ejecutivo/sector; arrastrar valida la transición contra la máquina de estados.
+2. **Pipeline (kanban)**: 8 columnas por estado (incluye Por contactar y Descartado) con conteo, filtros por ejecutivo/sector; arrastrar valida la transición contra la máquina de estados.
 3. **Ficha de empresa**: datos, sucursales, línea de tiempo de interacciones e historial de estados, citas y contrato.
 4. **Tablero**: embudo por estado, cumplimiento de cuota semanal por ejecutivo, cobertura del ciclo de 3 semanas, tasa de conversión entre etapas, contratos activos.
 5. **Cartera / rotación**: semana N de 3 del ciclo, empresas pendientes de tocar en el ciclo, reasignaciones.
@@ -234,7 +234,7 @@ frontend/src/
 
 > **Particularidades de Prisma con SQL Server que el plan ya contempla**
 > - Prisma **no soporta `enum` en SQL Server** → los estados son `String` en la base de datos, `PipelineStatus` es un *value object* en el dominio y se añade una restricción `CHECK` editando la migración generada con `--create-only`.
-> - Límite de **2 100 parámetros** por consulta → la importación inserta en lotes de ~150 filas.
+> - Límite de **2 100 parámetros** por consulta → la importación inserta en lotes de 100 empresas (ADR 0002).
 > - `createMany({ skipDuplicates })` no existe en SQL Server → la deduplicación se hace antes de insertar (o con `MERGE` en SQL crudo).
 > - `prisma migrate dev` necesita una **base sombra**: el usuario de desarrollo necesita permiso `CREATE DATABASE` o se define `shadowDatabaseUrl`.
 
@@ -394,7 +394,7 @@ Guía para los agentes en `docs/AGENTS.md` con estas reglas, la regla de depende
 | ID | Tarea | Agente | Rama |
 |---|---|---|---|
 | T1.1 | Módulo `companies` + `catalogs`: CRUD, sucursales, búsqueda paginada, filtros (Specification) | Agente de implementación | `feat/w1-companies` |
-| T1.2 | Módulo `import`: lectura en streaming del Excel (ExcelJS), normalización de RUC/teléfono, deduplicación (RUC repetido → sucursal), lotes de 150, `ImportJob` + reporte de rechazos, script CLI `bun run import data/Empresas Nicaragua.xlsx` | Agente de implementación | `feat/w1-import` |
+| T1.2 | Módulo `import`: lectura en streaming del Excel (ExcelJS), normalización de RUC/teléfono, deduplicación (RUC repetido → sucursal), lotes de 100, `ImportJob` + reporte de rechazos, script CLI `bun run import data/Empresas Nicaragua.xlsx` | Agente de implementación | `feat/w1-import` |
 | T1.3 | Módulo `identity`: usuarios, JWT access/refresh, guards por rol, `Bun.password` | Agente de implementación | `feat/w1-identity` |
 | T1.4 | Módulo `pipeline`: value object `PipelineStatus` (State), `ChangeCompanyStatusUseCase` con UoW, `StatusHistory`, `Interaction`, evento `CompanyStatusChanged` | **Agente principal** | `feat/w1-pipeline` |
 | T1.5 | Frontend base: Vite + React + Tailwind v4 + shadcn/ui, layout con barra lateral, router, cliente API con TanStack Query, login | Agente de implementación | `feat/w1-frontend-shell` |
