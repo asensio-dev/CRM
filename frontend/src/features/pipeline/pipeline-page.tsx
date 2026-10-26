@@ -2,6 +2,7 @@ import {
   type BoardCardDto,
   type BoardColumnDto,
   type BoardDto,
+  type CatalogItem,
   PIPELINE_STATUS_LABELS,
   PIPELINE_STATUSES,
   PIPELINE_STATUSES_REQUIRING_NOTE,
@@ -19,14 +20,15 @@ import {
 } from '@dnd-kit/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Kanban, Search } from 'lucide-react';
+import { Kanban } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { Input } from '@/shared/ui/input';
-import { NativeSelect } from '@/shared/ui/native-select';
 import { PageHeader } from '@/shared/ui/page-header';
+import { SearchInput } from '@/shared/ui/search-input';
+import { SearchableSelect } from '@/shared/ui/searchable-select';
 import { Skeleton } from '@/shared/ui/skeleton';
 import {
   type BoardFilters,
@@ -39,26 +41,19 @@ import {
 } from './api';
 import { CardOverlay } from './board-card';
 import { BoardColumn, type DragInfo } from './board-column';
+import { limitForPage } from './board-paging';
 import { pipelineErrorMessage } from './errors';
-import { LIMIT_STEP, MAX_LIMIT, type PipelineSearch, pipelineSearchSchema } from './search';
+import { DEFAULT_LIMIT, type PipelineSearch, pipelineSearchSchema } from './search';
 import { StatusNoteDialog } from './status-note-dialog';
 
 const EMPTY_DRAG: DragInfo = { from: null, allowed: null };
+const nf = new Intl.NumberFormat('es-NI');
 
 /** Completa las 8 columnas en el orden del pipeline aunque el backend omita alguna. */
 export function normalizeColumns(board: BoardDto | undefined): BoardColumnDto[] {
   return PIPELINE_STATUSES.map(
     (status) => board?.columns.find((c) => c.status === status) ?? { status, count: 0, cards: [] },
   );
-}
-
-function useDebounced<T>(value: T, ms: number): T {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setV(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return v;
 }
 
 /** Filtros ↔ URL (`/pipeline?q=&sectorId=&activityId=&limitPerColumn=`). */
@@ -75,7 +70,7 @@ export function usePipelineSearch() {
           q: next.q || undefined,
           sectorId: next.sectorId || undefined,
           activityId: next.activityId || undefined,
-          limitPerColumn: next.limitPerColumn === 20 ? undefined : next.limitPerColumn,
+          limitPerColumn: next.limitPerColumn === DEFAULT_LIMIT ? undefined : next.limitPerColumn,
         };
       }) as never,
       replace: true,
@@ -83,88 +78,88 @@ export function usePipelineSearch() {
   return { search, update };
 }
 
+const catalogOption = (items: CatalogItem[] | undefined, id: number | undefined) =>
+  (id !== undefined && items?.find((i) => i.id === id)) || null;
+
 function Filters({
   search,
   update,
+  total,
 }: {
   search: PipelineSearch;
   update: (p: Partial<PipelineSearch>) => void;
+  /** Empresas que cumplen los filtros (suma de las columnas), o null mientras carga. */
+  total: number | null;
 }) {
   const sectors = useSectors();
   const activities = useActivities();
   const [text, setText] = useState(search.q ?? '');
-  const debounced = useDebounced(text, 300);
+  const debounced = useDebouncedValue(text, 300);
 
   // Texto → URL (debounce) y URL → texto (atrás/adelante del navegador).
   // biome-ignore lint/correctness/useExhaustiveDependencies: solo reacciona al texto con debounce.
   useEffect(() => {
     const next = debounced.trim() || undefined;
-    if (next !== search.q) update({ q: next, limitPerColumn: 20 });
+    if (next !== search.q) update({ q: next, limitPerColumn: DEFAULT_LIMIT });
   }, [debounced]);
   useEffect(() => {
     setText(search.q ?? '');
   }, [search.q]);
 
+  const filtered = !!(search.q || search.sectorId || search.activityId);
+
   return (
-    <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_14rem_18rem_auto]">
-      <div className="relative">
-        <Search
-          className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          type="search"
-          aria-label="Buscar empresa"
-          placeholder="Razón social, nombre comercial o RUC"
-          className="pl-9"
-          value={text}
-          maxLength={100}
-          onChange={(e) => setText(e.target.value)}
-        />
-      </div>
-      <NativeSelect
+    <div className="mb-5 flex flex-wrap items-center gap-2.5">
+      <SearchInput
+        aria-label="Buscar empresa"
+        placeholder="Buscar por razón social, nombre comercial o RUC"
+        className="min-w-64 flex-1 lg:max-w-md"
+        value={text}
+        maxLength={100}
+        onValueChange={setText}
+      />
+      <SearchableSelect
         aria-label="Sector"
-        value={search.sectorId ?? ''}
-        onChange={(e) =>
-          update({
-            sectorId: e.target.value ? Number(e.target.value) : undefined,
-            limitPerColumn: 20,
-          })
-        }
-      >
-        <option value="">Todos los sectores</option>
-        {sectors.data?.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name}
-          </option>
-        ))}
-      </NativeSelect>
-      <NativeSelect
+        className="w-full sm:w-52"
+        placeholder="Todos los sectores"
+        searchPlaceholder="Buscar sector…"
+        options={sectors.data ?? []}
+        isLoading={sectors.isPending}
+        value={catalogOption(sectors.data, search.sectorId)}
+        onChange={(o) => update({ sectorId: o?.id, limitPerColumn: DEFAULT_LIMIT })}
+      />
+      <SearchableSelect
         aria-label="Actividad"
-        value={search.activityId ?? ''}
-        onChange={(e) =>
-          update({
-            activityId: e.target.value ? Number(e.target.value) : undefined,
-            limitPerColumn: 20,
-          })
-        }
-      >
-        <option value="">Todas las actividades</option>
-        {activities.data?.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.name}
-          </option>
-        ))}
-      </NativeSelect>
-      {(search.q || search.sectorId || search.activityId) && (
+        className="w-full sm:w-64"
+        placeholder="Todas las actividades"
+        searchPlaceholder="Buscar actividad…"
+        options={activities.data ?? []}
+        isLoading={activities.isPending}
+        value={catalogOption(activities.data, search.activityId)}
+        onChange={(o) => update({ activityId: o?.id, limitPerColumn: DEFAULT_LIMIT })}
+      />
+      {filtered && (
         <Button
           variant="ghost"
-          onClick={() =>
-            update({ q: undefined, sectorId: undefined, activityId: undefined, limitPerColumn: 20 })
-          }
+          onClick={() => {
+            setText('');
+            update({
+              q: undefined,
+              sectorId: undefined,
+              activityId: undefined,
+              limitPerColumn: DEFAULT_LIMIT,
+            });
+          }}
         >
           Limpiar
         </Button>
+      )}
+      {total !== null && (
+        <p className="ml-auto text-sm text-muted-foreground" aria-live="polite">
+          <span className="font-medium tabular-nums text-foreground">{nf.format(total)}</span>{' '}
+          {total === 1 ? 'empresa' : 'empresas'}
+          {filtered ? ' encontradas' : ''}
+        </p>
       )}
     </div>
   );
@@ -179,15 +174,32 @@ function BoardSkeleton() {
       aria-label="Cargando tablero"
     >
       {PIPELINE_STATUSES.slice(0, 5).map((s) => (
-        <div key={s} className="w-72 shrink-0 space-y-2 rounded-lg border bg-muted/40 p-3">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-20" />
-          <Skeleton className="h-20" />
-          <Skeleton className="h-20" />
+        <div key={s} className="w-72 shrink-0 space-y-2 rounded-xl bg-muted/60 p-2">
+          <Skeleton className="mx-1 my-1.5 h-4 w-28" />
+          <Skeleton className="h-24 rounded-lg" />
+          <Skeleton className="h-24 rounded-lg" />
+          <Skeleton className="h-24 rounded-lg" />
         </div>
       ))}
     </div>
   );
+}
+
+type ColumnPages = Partial<Record<PipelineStatus, number>>;
+
+/** Página actual de cada columna; vuelve a la primera cuando cambian la búsqueda o los filtros. */
+function useColumnPages(filterKey: string) {
+  const [state, setState] = useState<{ key: string; pages: ColumnPages }>({
+    key: filterKey,
+    pages: {},
+  });
+  const pages = state.key === filterKey ? state.pages : {};
+  const setPage = (status: PipelineStatus, page: number) =>
+    setState((prev) => ({
+      key: filterKey,
+      pages: { ...(prev.key === filterKey ? prev.pages : {}), [status]: page },
+    }));
+  return { pages, setPage };
 }
 
 export function PipelinePage() {
@@ -214,6 +226,17 @@ export function PipelinePage() {
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   );
   const columns = normalizeColumns(board.data);
+  const { pages, setPage } = useColumnPages(
+    JSON.stringify([search.q, search.sectorId, search.activityId]),
+  );
+  // `limitPerColumn` subió y el tablero aún trae las tarjetas que faltan.
+  const loadingMore = board.isPlaceholderData || board.isFetching;
+
+  function changePage(column: BoardColumnDto, page: number) {
+    setPage(column.status, page);
+    const limit = limitForPage(page, column.count, search.limitPerColumn);
+    if (limit !== null) update({ limitPerColumn: limit });
+  }
 
   async function onDragStart(e: DragStartEvent) {
     const card = e.active.data.current?.card as BoardCardDto | undefined;
@@ -259,6 +282,7 @@ export function PipelinePage() {
 
   const hasCards = columns.some((c) => c.count > 0);
   const filtered = !!(search.q || search.sectorId || search.activityId);
+  const total = board.data ? columns.reduce((sum, c) => sum + c.count, 0) : null;
 
   return (
     <div>
@@ -266,7 +290,7 @@ export function PipelinePage() {
         title="Pipeline"
         description="Arrastra las empresas entre columnas para cambiar su estado."
       />
-      <Filters search={search} update={update} />
+      <Filters search={search} update={update} total={total} />
 
       {board.isPending ? (
         <BoardSkeleton />
@@ -297,23 +321,18 @@ export function PipelinePage() {
             className="-mx-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0"
             data-testid="board-scroll"
           >
-            <div className="flex w-max items-start gap-3">
+            <div className="flex w-max items-stretch gap-3">
               {columns.map((column) => (
                 <BoardColumn
                   key={column.status}
                   column={column}
                   drag={drag}
+                  page={pages[column.status] ?? 1}
+                  onPageChange={(page) => changePage(column, page)}
+                  loadingMore={loadingMore}
                   collapsible={column.status === 'DESCARTADO'}
                   collapsed={column.status === 'DESCARTADO' && !discardedOpen}
                   onToggleCollapsed={() => setDiscardedOpen((v) => !v)}
-                  canLoadMore={
-                    column.cards.length < column.count && search.limitPerColumn < MAX_LIMIT
-                  }
-                  onLoadMore={() =>
-                    update({
-                      limitPerColumn: Math.min(MAX_LIMIT, search.limitPerColumn + LIMIT_STEP),
-                    })
-                  }
                 />
               ))}
             </div>
