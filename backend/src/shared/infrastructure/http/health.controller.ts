@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { APP_VERSION } from '../config/app-version';
 import { PrismaService } from '../prisma/prisma.service';
 import { Public } from './auth.decorators';
 
@@ -12,6 +13,6 @@ export class HealthController {
   @Get()
   async check() {
     await this.prisma.db.$queryRaw`SELECT 1`;
-    return { status: 'ok', database: 'up' };
+    return { status: 'ok', database: 'up', version: APP_VERSION };
   }
 }

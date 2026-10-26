@@ -1,6 +1,7 @@
 {
   "name": "axiom-crm",
   "private": true,
+  "version": "1.0.0",
   "type": "module",
   "workspaces": [
     "backend",
