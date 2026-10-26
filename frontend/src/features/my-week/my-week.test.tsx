@@ -152,6 +152,51 @@ describe('Mi semana', () => {
     expect(await screen.findByText('Sin resultados')).toBeTruthy();
   });
 
+  test('plan largo: paginación en cliente, filas por página y la búsqueda vuelve a la página 1', async () => {
+    const many = Array.from({ length: 25 }, (_, i) => item(i + 1));
+    many.push(item(26, { legalName: 'Panadería Ñame S.A.' }));
+    const dto = weekDto(many, { quota: 20 });
+    mocked = mockFetch(({ url }) =>
+      url.pathname === '/api/portfolio/my-week' ? jsonResponse(dto) : undefined,
+    );
+    await mountApp('/mi-semana', 'EJECUTIVO');
+    const u = userEvent.setup();
+    await screen.findByTestId('plan-item-1');
+    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(10);
+    expect(screen.getByText('1–10 de 26 empresas')).toBeTruthy();
+
+    await u.click(screen.getByRole('button', { name: 'Página 3' }));
+    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(6);
+    expect(screen.getByTestId('plan-item-26')).toBeTruthy();
+
+    await u.type(screen.getByRole('searchbox', { name: 'Buscar en el plan' }), 'panaderia name');
+    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(1);
+    expect(screen.getByText('1–1 de 1 empresas')).toBeTruthy();
+
+    await u.clear(screen.getByRole('searchbox', { name: 'Buscar en el plan' }));
+    expect(screen.getByText('1–10 de 26 empresas')).toBeTruthy();
+    await u.selectOptions(screen.getByLabelText('Filas por página'), '50');
+    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(26);
+  });
+
+  test('cambiar de pestaña vuelve a la primera página', async () => {
+    const done = '2026-10-26T14:00:00.000Z';
+    const many = Array.from({ length: 24 }, (_, i) =>
+      item(i + 1, i >= 12 ? { contactedAt: done } : {}),
+    );
+    mocked = mockFetch(({ url }) =>
+      url.pathname === '/api/portfolio/my-week' ? jsonResponse(weekDto(many)) : undefined,
+    );
+    await mountApp('/mi-semana', 'EJECUTIVO');
+    const u = userEvent.setup();
+    await screen.findByTestId('plan-item-1');
+    await u.click(screen.getByRole('button', { name: 'Página 2' }));
+    expect(screen.getAllByTestId(/plan-item-/)).toHaveLength(2);
+    await u.click(screen.getByRole('tab', { name: /Todas \(24\)/ }));
+    expect(screen.getByText('1–10 de 24 empresas')).toBeTruthy();
+    expect(screen.getByTestId('plan-item-1')).toBeTruthy();
+  });
+
   test('cuota alcanzada: estado de celebración; sin pendientes lo indica', async () => {
     const done = '2026-10-26T14:00:00.000Z';
     const dto = weekDto([1, 2, 3, 4].map((i) => item(i, { contactedAt: done })));

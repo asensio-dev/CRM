@@ -1,7 +1,7 @@
 import type { MyWeekDto, MyWeekItemDto } from '@axiom/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { CalendarOff, ClipboardList, PartyPopper, Search, SearchX } from 'lucide-react';
+import { CalendarOff, ClipboardList, PartyPopper, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useSessionStore } from '@/features/auth/session-store';
@@ -10,16 +10,18 @@ import { portfolioKeys, useCurrentCycle, useMyWeek } from '@/features/portfolio/
 import { formatLocalRange } from '@/features/portfolio/format';
 import { ProgressBar } from '@/features/portfolio/progress-bar';
 import { RunWeeklyButton, RunWeeklyDialog } from '@/features/portfolio/run-weekly';
+import { useClientList } from '@/shared/hooks/use-client-list';
 import { cn } from '@/shared/lib/cn';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
-import { Card, CardContent } from '@/shared/ui/card';
+import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { NativeSelect } from '@/shared/ui/native-select';
 import { PageHeader } from '@/shared/ui/page-header';
+import { Pagination } from '@/shared/ui/pagination';
 import { QueryError } from '@/shared/ui/query-error';
+import { SearchInput } from '@/shared/ui/search-input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { companyDisplayName, PlanItemRow } from './plan-item-row';
 import {
@@ -34,31 +36,30 @@ import {
   tabCounts,
 } from './plan-utils';
 
+export const PLAN_PAGE_SIZE = 10;
+const PLAN_PAGE_SIZES = [10, 25, 50] as const;
+
 function WeekHeader({ data, ownerName }: { data: MyWeekDto; ownerName?: string }) {
   const week = data.week;
   const p = progressOf(data.contactedCount, data.quota);
   if (!week) return null;
   return (
-    <Card
-      className={cn(
-        'mb-4 overflow-hidden',
-        p.reached && 'border-emerald-300 dark:border-emerald-500/50',
-      )}
-      data-testid="week-header"
-      data-reached={p.reached}
-    >
-      <CardContent className="grid gap-3 p-4 sm:p-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            {ownerName ? `${ownerName} · ` : ''}Semana {week.weekNumber} de {week.totalWeeks} ·
-            Ciclo #{week.cycle.number}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {formatLocalRange(week.weekStart, week.weekEnd)}
-          </p>
-        </div>
+    <Card className="grid gap-4 p-5 sm:p-6" data-testid="week-header" data-reached={p.reached}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="text-sm font-medium text-muted-foreground">
+          {ownerName ? `${ownerName} · ` : ''}Semana {week.weekNumber} de {week.totalWeeks} · Ciclo
+          #{week.cycle.number}
+        </h2>
+        <p className="text-sm text-muted-foreground tabular-nums">
+          {formatLocalRange(week.weekStart, week.weekEnd)}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex items-end gap-3">
-          <p className="text-5xl font-bold tabular-nums leading-none" aria-hidden="true">
+          <p
+            className="text-5xl font-semibold leading-none tracking-[-0.03em] tabular-nums"
+            aria-hidden="true"
+          >
             {data.contactedCount}
             <span className="text-2xl font-medium text-muted-foreground"> / {data.quota}</span>
           </p>
@@ -69,34 +70,31 @@ function WeekHeader({ data, ownerName }: { data: MyWeekDto; ownerName?: string }
             contactadas
           </p>
         </div>
-        <ProgressBar
-          size="lg"
-          value={data.contactedCount}
-          max={data.quota}
-          complete={p.reached}
-          label="Progreso de la cuota semanal"
-        />
-        {p.reached ? (
-          <p
-            className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400"
-            role="status"
-          >
-            <PartyPopper className="size-5" aria-hidden="true" />
-            ¡Cuota semanal cumplida!
-            {data.contactedCount > data.quota && ` (+${data.contactedCount - data.quota} extra)`}
-          </p>
-        ) : (
-          <p className="text-sm" role="status">
-            Te {p.remaining === 1 ? 'falta' : 'faltan'}{' '}
-            <strong className="tabular-nums">{p.remaining}</strong>{' '}
-            {p.remaining === 1 ? 'contacto' : 'contactos'} para la cuota ·{' '}
-            <span className="tabular-nums">{p.pct}%</span>
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">
+        <p className="pb-1 text-sm text-muted-foreground">
           Plan de la semana: {data.totalItems} empresas.
         </p>
-      </CardContent>
+      </div>
+      <ProgressBar
+        size="lg"
+        value={data.contactedCount}
+        max={data.quota}
+        complete={p.reached}
+        label="Progreso de la cuota semanal"
+      />
+      {p.reached ? (
+        <p className="flex items-center gap-2 text-sm font-medium text-success" role="status">
+          <PartyPopper className="size-5" aria-hidden="true" />
+          ¡Cuota semanal cumplida!
+          {data.contactedCount > data.quota && ` (+${data.contactedCount - data.quota} extra)`}
+        </p>
+      ) : (
+        <p className="text-sm" role="status">
+          Te {p.remaining === 1 ? 'falta' : 'faltan'}{' '}
+          <strong className="tabular-nums">{p.remaining}</strong>{' '}
+          {p.remaining === 1 ? 'contacto' : 'contactos'} para la cuota ·{' '}
+          <span className="tabular-nums">{p.pct}%</span>
+        </p>
+      )}
     </Card>
   );
 }
@@ -107,7 +105,7 @@ function MyWeekSkeleton() {
       <Skeleton className="h-44 w-full" />
       <Skeleton className="h-10 w-full" />
       {[0, 1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-36 w-full" />
+        <Skeleton key={i} className="h-28 w-full" />
       ))}
     </div>
   );
@@ -134,8 +132,8 @@ export function MyWeekPage() {
       ? executives.find((e) => e.userId === effectiveUserId)?.fullName
       : undefined;
 
-  const [tab, setTab] = useState<PlanTab>('pending');
-  const [query, setQuery] = useState('');
+  const [tab, setTabState] = useState<PlanTab>('pending');
+  const [query, setQueryState] = useState('');
   const [registering, setRegistering] = useState<MyWeekItemDto | null>(null);
   const [runWeeklyOpen, setRunWeeklyOpen] = useState(false);
 
@@ -158,6 +156,17 @@ export function MyWeekPage() {
   const counts = useMemo(() => tabCounts(items), [items]);
   const reasons = useMemo(() => reasonCounts(items), [items]);
   const visible = useMemo(() => filterItems(items, tab, query), [items, tab, query]);
+  // El API devuelve el plan completo: la paginación se hace en cliente sobre lo filtrado.
+  const list = useClientList(visible, { pageSize: PLAN_PAGE_SIZE });
+
+  const setTab = (t: PlanTab) => {
+    setTabState(t);
+    list.setPage(1);
+  };
+  const setQuery = (q: string) => {
+    setQueryState(q);
+    list.setPage(1);
+  };
 
   const onSelectExecutive = (id: string) =>
     void navigate({
@@ -168,11 +177,11 @@ export function MyWeekPage() {
 
   const selector =
     staff && executives.length > 0 ? (
-      <div className="mb-4 grid gap-1 sm:max-w-xs">
+      <div className="grid gap-1 sm:max-w-xs">
         <Label htmlFor="week-executive">Ejecutivo</Label>
         <NativeSelect
           id="week-executive"
-          className="h-11"
+          className="h-10"
           value={effectiveUserId !== undefined ? String(effectiveUserId) : ''}
           onChange={(e) => onSelectExecutive(e.target.value)}
         >
@@ -247,117 +256,127 @@ export function MyWeekPage() {
             description="No hay empresas en la cartera para planificar. Pide que te asignen empresas desde Cartera."
           />
         ) : (
-          <>
-            <ul
-              className="mb-3 flex flex-wrap gap-1.5"
-              aria-label="Resumen del plan por motivo"
-              data-testid="reason-summary"
-            >
-              {(Object.keys(reasons) as (keyof typeof reasons)[])
-                .filter((r) => reasons[r] > 0)
-                .map((r) => (
-                  <li key={r}>
-                    <Badge
-                      variant="outline"
-                      className={REASON_META[r].badge}
-                      title={REASON_META[r].hint}
-                    >
-                      {REASON_META[r].label}: {reasons[r]}
-                    </Badge>
-                  </li>
-                ))}
-            </ul>
-
-            <div className="mb-3 grid gap-2 sm:flex sm:items-center sm:justify-between">
-              <div
-                role="tablist"
-                aria-label="Filtrar plan"
-                className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 sm:inline-grid"
-              >
-                {PLAN_TABS.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={tab === t.id}
-                    onClick={() => setTab(t.id)}
-                    className={cn(
-                      'h-10 rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      tab === t.id
-                        ? 'bg-card text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    {t.label} <span className="tabular-nums">({counts[t.id]})</span>
-                  </button>
-                ))}
+          <Card className="overflow-hidden">
+            <div className="grid gap-3 border-b px-4 py-4 sm:px-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-semibold">Plan de contactos</h2>
+                <ul
+                  className="flex flex-wrap gap-1.5"
+                  aria-label="Resumen del plan por motivo"
+                  data-testid="reason-summary"
+                >
+                  {(Object.keys(reasons) as (keyof typeof reasons)[])
+                    .filter((r) => reasons[r] > 0)
+                    .map((r) => (
+                      <li key={r}>
+                        <Badge
+                          variant="outline"
+                          className={REASON_META[r].badge}
+                          title={REASON_META[r].hint}
+                        >
+                          {REASON_META[r].label}: {reasons[r]}
+                        </Badge>
+                      </li>
+                    ))}
+                </ul>
               </div>
-              <div className="relative sm:w-72">
-                <Search
-                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <Input
-                  type="search"
-                  className="h-11 pl-9"
+              <div className="grid gap-2 sm:flex sm:items-center sm:justify-between">
+                <div
+                  role="tablist"
+                  aria-label="Filtrar plan"
+                  className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 sm:inline-grid"
+                >
+                  {PLAN_TABS.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === t.id}
+                      onClick={() => setTab(t.id)}
+                      className={cn(
+                        'h-9 rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        tab === t.id
+                          ? 'bg-card text-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {t.label} <span className="tabular-nums">({counts[t.id]})</span>
+                    </button>
+                  ))}
+                </div>
+                <SearchInput
+                  className="sm:w-72"
+                  value={query}
+                  onValueChange={setQuery}
                   placeholder="Buscar en el plan…"
                   aria-label="Buscar en el plan"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
             </div>
 
             {visible.length === 0 ? (
-              query ? (
-                <EmptyState
-                  icon={SearchX}
-                  title="Sin resultados"
-                  description="Ninguna empresa del plan coincide con la búsqueda en esta pestaña."
-                  action={
-                    <Button variant="outline" onClick={() => setQuery('')}>
-                      Limpiar búsqueda
-                    </Button>
-                  }
-                />
-              ) : tab === 'pending' ? (
-                <EmptyState
-                  icon={PartyPopper}
-                  title="¡No quedan pendientes!"
-                  description="Contactaste a todas las empresas de tu plan de la semana."
-                  action={
-                    <Button variant="outline" onClick={() => setTab('all')}>
-                      Ver todas
-                    </Button>
-                  }
-                />
-              ) : (
-                <EmptyState
-                  icon={ClipboardList}
-                  title="Todavía no hay contactadas"
-                  description="Las empresas aparecerán aquí cuando registres su contacto."
-                />
-              )
-            ) : (
-              <ul className="grid gap-3" aria-label="Plan semanal">
-                {visible.map((item) => (
-                  <PlanItemRow
-                    key={item.itemId}
-                    item={item}
-                    onRegister={setRegistering}
-                    onStatusChanged={refresh}
+              <div className="p-5">
+                {query ? (
+                  <EmptyState
+                    icon={SearchX}
+                    title="Sin resultados"
+                    description="Ninguna empresa del plan coincide con la búsqueda en esta pestaña."
+                    action={
+                      <Button variant="outline" onClick={() => setQuery('')}>
+                        Limpiar búsqueda
+                      </Button>
+                    }
                   />
-                ))}
-              </ul>
+                ) : tab === 'pending' ? (
+                  <EmptyState
+                    icon={PartyPopper}
+                    title="¡No quedan pendientes!"
+                    description="Contactaste a todas las empresas de tu plan de la semana."
+                    action={
+                      <Button variant="outline" onClick={() => setTab('all')}>
+                        Ver todas
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <EmptyState
+                    icon={ClipboardList}
+                    title="Todavía no hay contactadas"
+                    description="Las empresas aparecerán aquí cuando registres su contacto."
+                  />
+                )}
+              </div>
+            ) : (
+              <>
+                <ul className="divide-y" aria-label="Plan semanal">
+                  {list.pageItems.map((item) => (
+                    <PlanItemRow
+                      key={item.itemId}
+                      item={item}
+                      onRegister={setRegistering}
+                      onStatusChanged={refresh}
+                    />
+                  ))}
+                </ul>
+                <Pagination
+                  page={list.page}
+                  pageSize={list.pageSize}
+                  total={list.total}
+                  onPageChange={list.setPage}
+                  onPageSizeChange={list.setPageSize}
+                  pageSizeOptions={PLAN_PAGE_SIZES}
+                  itemLabel="empresas"
+                />
+              </>
             )}
-          </>
+          </Card>
         )}
       </>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto grid max-w-3xl gap-5">
       <PageHeader
         title="Mi semana"
         description="Tu plan de contactos de la semana y el avance de tu cuota."

@@ -7,12 +7,14 @@ import {
 } from '@axiom/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2 } from 'lucide-react';
-import { useId, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useId, useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useActivities, useSectors } from '@/features/pipeline/api';
+import { useClientList } from '@/shared/hooks/use-client-list';
 import { Button } from '@/shared/ui/button';
+import type { ComboboxOption } from '@/shared/ui/combobox';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import {
@@ -24,6 +26,9 @@ import {
   DialogTitle,
 } from '@/shared/ui/modal-dialog';
 import { NativeSelect } from '@/shared/ui/native-select';
+import { Pagination } from '@/shared/ui/pagination';
+import { SearchInput } from '@/shared/ui/search-input';
+import { SearchableSelect } from '@/shared/ui/searchable-select';
 import { useBulkAssign, useReassign, useReleaseAssignment } from './api';
 
 export const RELEASE_REASON_LABELS: Record<ReleaseReason, string> = {
@@ -40,6 +45,66 @@ const fieldError = (m?: string) =>
     </p>
   ) : null;
 
+/** Opciones de ejecutivo con su ocupación de cartera (se busca por nombre). */
+function executiveOptions(executives: readonly ExecutiveCoverageDto[]): ComboboxOption[] {
+  return executives.map((e) => ({
+    id: e.userId,
+    name: `${e.fullName} (${e.assigned}/${e.target})`,
+  }));
+}
+
+const findOption = (options: readonly ComboboxOption[], id: string) =>
+  id ? (options.find((o) => String(o.id) === id) ?? null) : null;
+
+const LIST_PAGE_SIZE = 6;
+const nameText = (c: SelectedCompany) => c.name;
+
+/** Lista compacta de empresas con búsqueda (si son muchas) y paginación en cliente. */
+export function CompanyNameList({
+  companies,
+  label,
+}: {
+  companies: readonly SelectedCompany[];
+  label: string;
+}) {
+  const list = useClientList(companies, { searchText: nameText, pageSize: LIST_PAGE_SIZE });
+  const many = companies.length > LIST_PAGE_SIZE;
+  return (
+    <div className="grid gap-2 rounded-lg border bg-muted/40 p-2">
+      {many && (
+        <SearchInput
+          value={list.query}
+          onValueChange={list.setQuery}
+          placeholder="Buscar empresa…"
+          aria-label={`Buscar en ${label.toLowerCase()}`}
+          inputClassName="h-8"
+        />
+      )}
+      {list.total === 0 ? (
+        <p className="px-1 py-1.5 text-sm text-muted-foreground">Sin resultados</p>
+      ) : (
+        <ul aria-label={label} className="grid gap-0.5 text-sm">
+          {list.pageItems.map((c) => (
+            <li key={c.id} className="truncate rounded-md px-1.5 py-1">
+              {c.name}
+            </li>
+          ))}
+        </ul>
+      )}
+      {list.total > LIST_PAGE_SIZE && (
+        <Pagination
+          variant="compact"
+          page={list.page}
+          pageSize={list.pageSize}
+          total={list.total}
+          onPageChange={list.setPage}
+          className="border-t px-1 pt-2"
+        />
+      )}
+    </div>
+  );
+}
+
 /** Resumen de una reasignación / asignación masiva / liberación. */
 export function ChangeResultSummary({
   result,
@@ -52,19 +117,19 @@ export function ChangeResultSummary({
   return (
     <div className="grid gap-2 text-sm" data-testid="change-result">
       <dl className="grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-md border bg-emerald-500/10 p-2">
+        <div className="rounded-lg border bg-success/8 p-2">
           <dt className="text-xs text-muted-foreground">Asignadas</dt>
           <dd className="text-lg font-semibold tabular-nums" data-testid="result-assigned">
             {result.assigned.length}
           </dd>
         </div>
-        <div className="rounded-md border bg-sky-500/10 p-2">
+        <div className="rounded-lg border bg-accent p-2">
           <dt className="text-xs text-muted-foreground">Liberadas</dt>
           <dd className="text-lg font-semibold tabular-nums" data-testid="result-released">
             {result.released.length}
           </dd>
         </div>
-        <div className="rounded-md border bg-amber-500/10 p-2">
+        <div className="rounded-lg border bg-warning/8 p-2">
           <dt className="text-xs text-muted-foreground">Omitidas</dt>
           <dd className="text-lg font-semibold tabular-nums" data-testid="result-skipped">
             {result.skipped.length}
@@ -72,15 +137,17 @@ export function ChangeResultSummary({
         </div>
       </dl>
       {result.skipped.length > 0 && (
-        <div>
+        <div className="grid gap-1.5">
           <p className="text-muted-foreground">
             Omitidas (ya eran del destino, no existen o están fuera de rotación):
           </p>
-          <ul className="mt-1 max-h-28 list-inside list-disc overflow-auto">
-            {result.skipped.map((id) => (
-              <li key={id}>{names?.get(id) ?? `Empresa ${id}`}</li>
-            ))}
-          </ul>
+          <CompanyNameList
+            label="Empresas omitidas"
+            companies={result.skipped.map((id) => ({
+              id,
+              name: names?.get(id) ?? `Empresa ${id}`,
+            }))}
+          />
         </div>
       )}
     </div>
@@ -102,7 +169,7 @@ function ResultView({
     <div className="grid gap-4">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
-          <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
+          <CheckCircle2 className="size-5 text-success" aria-hidden="true" />
           {title}
         </DialogTitle>
         <DialogDescription>Resumen de los cambios aplicados.</DialogDescription>
@@ -167,6 +234,7 @@ function ReassignForm({
   const [result, setResult] = useState<AssignmentChangeResultDto | null>(null);
   const mutation = useReassign();
   const names = new Map(selection.map((s) => [s.id, s.name]));
+  const options = useMemo(() => executiveOptions(executives), [executives]);
 
   if (result) {
     return (
@@ -206,21 +274,21 @@ function ReassignForm({
             : `Se moverán ${selection.length} empresas a otro ejecutivo.`}
         </DialogDescription>
       </DialogHeader>
+      {selection.length > 1 && (
+        <CompanyNameList label="Empresas seleccionadas" companies={selection} />
+      )}
       <div className="grid gap-1.5">
         <Label htmlFor={`${uid}-to`}>Ejecutivo destino</Label>
-        <NativeSelect
+        <SearchableSelect
           id={`${uid}-to`}
-          value={toUserId}
-          aria-invalid={touched && !toUserId ? true : undefined}
-          onChange={(e) => setToUserId(e.target.value)}
-        >
-          <option value="">Selecciona…</option>
-          {executives.map((e) => (
-            <option key={e.userId} value={e.userId}>
-              {e.fullName} ({e.assigned}/{e.target})
-            </option>
-          ))}
-        </NativeSelect>
+          placeholder="Selecciona…"
+          searchPlaceholder="Buscar ejecutivo…"
+          emptyText="Ningún ejecutivo coincide"
+          options={options}
+          value={findOption(options, toUserId)}
+          invalid={touched && !toUserId}
+          onChange={(o) => setToUserId(o ? String(o.id) : '')}
+        />
         {touched && !toUserId && fieldError('Selecciona el ejecutivo destino.')}
       </div>
       <DialogFooter>
@@ -368,7 +436,11 @@ function BulkForm({
   const activities = useActivities();
   const mutation = useBulkAssign();
   const [result, setResult] = useState<AssignmentChangeResultDto | null>(null);
+  const execOptions = useMemo(() => executiveOptions(executives), [executives]);
+  const sectorOptions = useMemo<ComboboxOption[]>(() => sectors.data ?? [], [sectors.data]);
+  const activityOptions = useMemo<ComboboxOption[]>(() => activities.data ?? [], [activities.data]);
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
@@ -412,42 +484,60 @@ function BulkForm({
       </DialogHeader>
       <div className="grid gap-1.5">
         <Label htmlFor={`${uid}-to`}>Ejecutivo destino</Label>
-        <NativeSelect
-          id={`${uid}-to`}
-          aria-invalid={errors.toUserId ? true : undefined}
-          {...register('toUserId')}
-        >
-          <option value="">Selecciona…</option>
-          {executives.map((e) => (
-            <option key={e.userId} value={e.userId}>
-              {e.fullName} ({e.assigned}/{e.target})
-            </option>
-          ))}
-        </NativeSelect>
+        <Controller
+          control={control}
+          name="toUserId"
+          render={({ field }) => (
+            <SearchableSelect
+              id={`${uid}-to`}
+              placeholder="Selecciona…"
+              searchPlaceholder="Buscar ejecutivo…"
+              emptyText="Ningún ejecutivo coincide"
+              options={execOptions}
+              value={findOption(execOptions, field.value)}
+              invalid={!!errors.toUserId}
+              onChange={(o) => field.onChange(o ? String(o.id) : '')}
+            />
+          )}
+        />
         {fieldError(errors.toUserId?.message)}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label htmlFor={`${uid}-sector`}>Sector (opcional)</Label>
-          <NativeSelect id={`${uid}-sector`} {...register('sectorId')}>
-            <option value="">Todos</option>
-            {sectors.data?.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </NativeSelect>
+          <Controller
+            control={control}
+            name="sectorId"
+            render={({ field }) => (
+              <SearchableSelect
+                id={`${uid}-sector`}
+                placeholder="Todos"
+                searchPlaceholder="Buscar sector…"
+                options={sectorOptions}
+                isLoading={sectors.isPending}
+                value={findOption(sectorOptions, field.value)}
+                onChange={(o) => field.onChange(o ? String(o.id) : '')}
+              />
+            )}
+          />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor={`${uid}-activity`}>Actividad (opcional)</Label>
-          <NativeSelect id={`${uid}-activity`} {...register('activityId')}>
-            <option value="">Todas</option>
-            {activities.data?.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </NativeSelect>
+          <Controller
+            control={control}
+            name="activityId"
+            render={({ field }) => (
+              <SearchableSelect
+                id={`${uid}-activity`}
+                placeholder="Todas"
+                searchPlaceholder="Buscar actividad…"
+                options={activityOptions}
+                isLoading={activities.isPending}
+                value={findOption(activityOptions, field.value)}
+                onChange={(o) => field.onChange(o ? String(o.id) : '')}
+              />
+            )}
+          />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor={`${uid}-min`}>Mínimo de empleados</Label>
