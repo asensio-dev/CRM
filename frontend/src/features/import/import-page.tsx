@@ -1,4 +1,4 @@
-import type { ImportJobDto, ImportJobStatus } from '@axiom/contracts';
+import { type ImportJobDto, type ImportJobStatus, normalizeSearchText } from '@axiom/contracts';
 import {
   CheckCircle2,
   FileSpreadsheet,
@@ -10,18 +10,22 @@ import {
 } from 'lucide-react';
 import { type DragEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useClientList } from '@/shared/hooks/use-client-list';
 import { errorMessage } from '@/shared/lib/api-errors';
 import { cn } from '@/shared/lib/cn';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
+import { Card, CardContent, CardDescription, CardTitle } from '@/shared/ui/card';
 import { PageHeader } from '@/shared/ui/page-header';
 import { Pagination } from '@/shared/ui/pagination';
 import { QueryError } from '@/shared/ui/query-error';
+import { SearchInput } from '@/shared/ui/search-input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 import {
+  type ImportHistoryEntry,
   isJobFinished,
   REJECTIONS_PAGE_SIZE,
+  REJECTIONS_PAGE_SIZE_OPTIONS,
   useImportHistory,
   useImportJob,
   useImportRejections,
@@ -40,9 +44,9 @@ const STATUS_LABEL: Record<ImportJobStatus, string> = {
 
 const STATUS_CLASS: Record<ImportJobStatus, string> = {
   PENDIENTE: 'bg-muted text-muted-foreground',
-  PROCESANDO: 'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300',
-  COMPLETADO: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300',
-  FALLIDO: 'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300',
+  PROCESANDO: 'bg-accent text-accent-foreground',
+  COMPLETADO: 'bg-success/10 text-success',
+  FALLIDO: 'bg-destructive/10 text-destructive',
 };
 
 function Dropzone({ onFile, disabled }: { onFile: (file: File) => void; disabled: boolean }) {
@@ -73,12 +77,14 @@ function Dropzone({ onFile, disabled }: { onFile: (file: File) => void; disabled
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={cn(
-          'flex flex-col items-center gap-3 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors',
-          dragging ? 'border-primary bg-accent' : 'border-input',
+          'flex flex-col items-center gap-3 rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors',
+          dragging ? 'border-primary bg-accent/60' : 'border-input bg-background/50',
           disabled && 'opacity-60',
         )}
       >
-        <UploadCloud className="size-10 text-muted-foreground" aria-hidden="true" />
+        <div className="flex size-12 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+          <UploadCloud className="size-6" aria-hidden="true" />
+        </div>
         <p className="text-sm">
           Arrastra aquí el archivo <strong>.xlsx</strong> o
         </p>
@@ -109,11 +115,11 @@ function Dropzone({ onFile, disabled }: { onFile: (file: File) => void; disabled
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: 'bad' }) {
   return (
-    <div className="rounded-md border p-3">
+    <div className="bg-card px-5 py-3.5">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd
         className={cn(
-          'text-xl font-semibold tabular-nums',
+          'mt-1 text-xl font-semibold tabular-nums',
           tone === 'bad' && value > 0 && 'text-destructive',
         )}
       >
@@ -126,72 +132,92 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: 'ba
 function JobCard({ job }: { job: ImportJobDto }) {
   const running = !isJobFinished(job);
   return (
-    <Card aria-live="polite">
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="size-4" aria-hidden="true" />
-            <span className="break-all">{job.fileName}</span>
-          </CardTitle>
-          <Badge className={STATUS_CLASS[job.status]}>
-            {running && <Loader2 className="size-3 animate-spin" aria-hidden="true" />}
-            {job.status === 'COMPLETADO' && <CheckCircle2 className="size-3" aria-hidden="true" />}
-            {job.status === 'FALLIDO' && <XCircle className="size-3" aria-hidden="true" />}
-            {STATUS_LABEL[job.status]}
-          </Badge>
+    <Card aria-live="polite" className="overflow-hidden">
+      <div className="flex flex-wrap items-start justify-between gap-3 p-5">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+            <FileSpreadsheet className="size-5" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 space-y-0.5">
+            <CardTitle className="break-all">{job.fileName}</CardTitle>
+            <CardDescription>
+              {running
+                ? 'Procesando el archivo; esta pantalla se actualiza sola cada 2 segundos.'
+                : 'Importación terminada.'}
+            </CardDescription>
+          </div>
         </div>
-        <CardDescription>
-          {running
-            ? 'Procesando el archivo; esta pantalla se actualiza sola cada 2 segundos.'
-            : 'Importación terminada.'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {running && (
+        <Badge className={STATUS_CLASS[job.status]}>
+          {running && <Loader2 className="size-3 animate-spin" aria-hidden="true" />}
+          {job.status === 'COMPLETADO' && <CheckCircle2 className="size-3" aria-hidden="true" />}
+          {job.status === 'FALLIDO' && <XCircle className="size-3" aria-hidden="true" />}
+          {STATUS_LABEL[job.status]}
+        </Badge>
+      </div>
+      {running && (
+        <div className="px-5 pb-4">
           <div
             role="progressbar"
             aria-label="Procesando importación"
-            className="h-1.5 overflow-hidden rounded-full bg-muted"
+            className="h-2 overflow-hidden rounded-full bg-track"
           >
-            <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
+            <div className="h-full w-1/3 animate-pulse rounded-full bg-fill-fade" />
           </div>
-        )}
-        {job.status === 'FALLIDO' && job.errorMessage && (
+        </div>
+      )}
+      {job.status === 'FALLIDO' && job.errorMessage && (
+        <div className="px-5 pb-4">
           <p
             role="alert"
-            className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >
             {job.errorMessage}
           </p>
-        )}
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <Stat label="Filas leídas" value={job.totalRows} />
-          <Stat label="Insertadas" value={job.insertedCount} />
-          <Stat label="Actualizadas" value={job.updatedCount} />
-          <Stat label="Sucursales" value={job.branchCount} />
-          <Stat label="Rechazadas" value={job.rejectedCount} tone="bad" />
-        </dl>
-      </CardContent>
+        </div>
+      )}
+      <dl className="grid grid-cols-2 gap-px border-t bg-border sm:grid-cols-5">
+        <Stat label="Filas leídas" value={job.totalRows} />
+        <Stat label="Insertadas" value={job.insertedCount} />
+        <Stat label="Actualizadas" value={job.updatedCount} />
+        <Stat label="Sucursales" value={job.branchCount} />
+        <Stat label="Rechazadas" value={job.rejectedCount} tone="bad" />
+      </dl>
     </Card>
   );
 }
 
 function Rejections({ jobId, total }: { jobId: number; total: number }) {
   const [page, setPage] = useState(1);
-  const q = useImportRejections(jobId, page, true);
+  const [pageSize, setPageSize] = useState<number>(REJECTIONS_PAGE_SIZE);
+  const [query, setQuery] = useState('');
+  const q = useImportRejections(jobId, page, true, pageSize);
+  const needle = normalizeSearchText(query);
+  // El API no filtra los rechazos por texto: la búsqueda se aplica a la página cargada.
+  const rows = (q.data?.items ?? []).filter(
+    (r) => !needle || normalizeSearchText(`${r.rowNumber} ${r.reason}`).includes(needle),
+  );
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Filas rechazadas ({nf.format(total)})</CardTitle>
-        <CardDescription>
-          Corrige estas filas en el Excel y vuelve a importarlo: solo se aplicarán los cambios.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
-        {q.isError && !q.data ? (
-          <QueryError error={q.error} onRetry={() => void q.refetch()} />
-        ) : (
-          <>
+    <Card className="overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+        <div className="min-w-0 space-y-0.5">
+          <CardTitle>Filas rechazadas ({nf.format(total)})</CardTitle>
+          <CardDescription>
+            Corrige estas filas en el Excel y vuelve a importarlo: solo se aplicarán los cambios.
+          </CardDescription>
+        </div>
+        <SearchInput
+          value={query}
+          onValueChange={setQuery}
+          placeholder="Filtrar esta página"
+          aria-label="Filtrar filas rechazadas"
+          className="w-full sm:w-60"
+        />
+      </div>
+      {q.isError && !q.data ? (
+        <QueryError error={q.error} onRetry={() => void q.refetch()} />
+      ) : (
+        <>
+          <div className={cn('transition-opacity', q.isFetching && 'opacity-60')}>
             <Table aria-label="Filas rechazadas">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -200,9 +226,11 @@ function Rejections({ jobId, total }: { jobId: number; total: number }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {q.data?.items.map((r) => (
+                {rows.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="tabular-nums">{nf.format(r.rowNumber)}</TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {nf.format(r.rowNumber)}
+                    </TableCell>
                     <TableCell>{r.reason}</TableCell>
                   </TableRow>
                 ))}
@@ -213,18 +241,117 @@ function Rejections({ jobId, total }: { jobId: number; total: number }) {
                     </TableCell>
                   </TableRow>
                 )}
+                {q.data && rows.length === 0 && needle && (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={2} className="text-muted-foreground">
+                      Nada en esta página coincide con «{query}».
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
-            <Pagination
-              page={page}
-              pageSize={REJECTIONS_PAGE_SIZE}
-              total={q.data?.total ?? total}
-              disabled={q.isFetching}
-              onPageChange={setPage}
-            />
-          </>
-        )}
-      </CardContent>
+          </div>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={q.data?.total ?? total}
+            disabled={q.isFetching}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+            pageSizeOptions={REJECTIONS_PAGE_SIZE_OPTIONS}
+            itemLabel="filas"
+          />
+        </>
+      )}
+    </Card>
+  );
+}
+
+const historyText = (e: ImportHistoryEntry) => `#${e.jobId} ${e.fileName}`;
+
+function HistoryCard({
+  entries,
+  selected,
+  onSelect,
+}: {
+  entries: ImportHistoryEntry[];
+  selected: number | null;
+  onSelect: (jobId: number) => void;
+}) {
+  const list = useClientList(entries, { searchText: historyText, pageSize: 5 });
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+        <CardTitle className="flex items-center gap-2">
+          <History className="size-4 text-muted-foreground" aria-hidden="true" />
+          Importaciones de esta sesión
+        </CardTitle>
+        <SearchInput
+          value={list.query}
+          onValueChange={list.setQuery}
+          placeholder="Buscar por archivo o número"
+          aria-label="Buscar importaciones"
+          className="w-full sm:w-60"
+        />
+      </div>
+      {list.total === 0 ? (
+        <p className="px-5 py-6 text-sm text-muted-foreground">
+          Ninguna importación coincide con «{list.query}».
+        </p>
+      ) : (
+        <>
+          <Table aria-label="Importaciones de esta sesión">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Archivo</TableHead>
+                <TableHead className="w-28">Hora</TableHead>
+                <TableHead className="w-20 text-right">
+                  <span className="sr-only">Acciones</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.pageItems.map((e) => (
+                <TableRow key={e.jobId} className={cn(e.jobId === selected && 'bg-accent/40')}>
+                  <TableCell className="max-w-0 truncate">
+                    #{e.jobId} · {e.fileName}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">
+                    <time dateTime={e.startedAt}>
+                      {new Date(e.startedAt).toLocaleTimeString('es-NI', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </time>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant={e.jobId === selected ? 'secondary' : 'outline'}
+                      onClick={() => onSelect(e.jobId)}
+                      aria-label={`Ver importación ${e.jobId}`}
+                    >
+                      Ver
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Pagination
+            page={list.page}
+            pageSize={list.pageSize}
+            total={list.total}
+            onPageChange={list.setPage}
+            onPageSizeChange={list.setPageSize}
+            pageSizeOptions={[5, 10]}
+            itemLabel="importaciones"
+          />
+        </>
+      )}
     </Card>
   );
 }
@@ -249,13 +376,13 @@ export function ImportPage() {
   const running = start.isPending || (jobId !== null && !!job.data && !isJobFinished(job.data));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Importación"
         description="Carga masiva de empresas desde un archivo Excel (.xlsx)."
       />
-      <div className="flex gap-3 rounded-lg border bg-accent/40 p-4 text-sm">
-        <Info className="mt-0.5 size-4 shrink-0 text-accent-foreground" aria-hidden="true" />
+      <div className="flex gap-3 rounded-xl border bg-wash/60 p-4 text-sm">
+        <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
         <p>
           <strong>Volver a importar es seguro (idempotente):</strong> las empresas se identifican
           por RUC, así que las existentes se actualizan y las nuevas se insertan; no se crean
@@ -263,7 +390,7 @@ export function ImportPage() {
         </p>
       </div>
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-5">
           <Dropzone onFile={(f) => void upload(f)} disabled={running} />
           {start.isPending && (
             <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground" role="status">
@@ -286,40 +413,7 @@ export function ImportPage() {
       )}
 
       {history.entries.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="size-4" aria-hidden="true" /> Importaciones de esta sesión
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="divide-y text-sm">
-              {history.entries.map((e) => (
-                <li key={e.jobId} className="flex items-center justify-between gap-3 py-2">
-                  <span className="min-w-0 truncate">
-                    #{e.jobId} · {e.fileName}
-                  </span>
-                  <span className="flex items-center gap-3">
-                    <time className="text-xs text-muted-foreground" dateTime={e.startedAt}>
-                      {new Date(e.startedAt).toLocaleTimeString('es-NI', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </time>
-                    <Button
-                      size="sm"
-                      variant={e.jobId === jobId ? 'secondary' : 'outline'}
-                      onClick={() => setJobId(e.jobId)}
-                      aria-label={`Ver importación ${e.jobId}`}
-                    >
-                      Ver
-                    </Button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <HistoryCard entries={history.entries} selected={jobId} onSelect={setJobId} />
       )}
     </div>
   );

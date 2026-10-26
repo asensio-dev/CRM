@@ -45,7 +45,7 @@ function Footer({
   onCancel: () => void;
 }) {
   return (
-    <DialogFooter>
+    <DialogFooter className="-mx-6 mt-2 border-t px-6 pt-4">
       <Button variant="outline" onClick={onCancel} disabled={pending}>
         Cancelar
       </Button>

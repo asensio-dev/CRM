@@ -14,7 +14,8 @@ export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 export const importKeys = {
   all: ['import'] as const,
   job: (id: number) => [...importKeys.all, 'job', id] as const,
-  rejections: (id: number, page: number) => [...importKeys.all, 'rejections', id, page] as const,
+  rejections: (id: number, page: number, pageSize: number) =>
+    [...importKeys.all, 'rejections', id, page, pageSize] as const,
 };
 
 export const isJobFinished = (job: ImportJobDto | undefined): boolean =>
@@ -31,13 +32,19 @@ export function useImportJob(id: number | null) {
 }
 
 export const REJECTIONS_PAGE_SIZE = 20;
+export const REJECTIONS_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 
-export function useImportRejections(id: number | null, page: number, enabled: boolean) {
+export function useImportRejections(
+  id: number | null,
+  page: number,
+  enabled: boolean,
+  pageSize: number = REJECTIONS_PAGE_SIZE,
+) {
   return useQuery({
-    queryKey: importKeys.rejections(id ?? 0, page),
+    queryKey: importKeys.rejections(id ?? 0, page, pageSize),
     queryFn: ({ signal }) =>
       api.get<Paginated<ImportRejectionDto>>(
-        `/import/${id}/rejections?page=${page}&pageSize=${REJECTIONS_PAGE_SIZE}`,
+        `/import/${id}/rejections?page=${page}&pageSize=${pageSize}`,
         signal,
       ),
     enabled: id !== null && enabled,

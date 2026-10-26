@@ -47,6 +47,14 @@ describe('search params', () => {
     expect(qs.getAll('status')).toEqual(['CONTACTADO']);
     expect(qs.get('pageSize')).toBe('25');
   });
+
+  test('pageSize: acepta solo los tamaños ofrecidos y viaja a la URL y al API', () => {
+    expect(parseCompaniesSearch({ pageSize: '7' }).pageSize).toBe(25);
+    const s = parseCompaniesSearch({ pageSize: '50' });
+    expect(s.pageSize).toBe(50);
+    expect(toUrlSearch(s)).toEqual({ pageSize: 50 });
+    expect(new URLSearchParams(toApiQueryString(s)).get('pageSize')).toBe('50');
+  });
 });
 
 describe('CompaniesPage', () => {
@@ -66,6 +74,34 @@ describe('CompaniesPage', () => {
     await user.click(screen.getByRole('button', { name: 'Página siguiente' }));
     expect((await screen.findAllByText('EMPRESA 26 S.A.')).length).toBeGreaterThan(0);
     expect(mocked.calls.some((c) => c.url.searchParams.get('page') === '2')).toBe(true);
+  });
+
+  test('filas por página cambia el tamaño de la consulta y vuelve a la página 1', async () => {
+    mocked = mockFetch(({ url }) => {
+      if (url.pathname === '/api/companies') {
+        const size = Number(url.searchParams.get('pageSize'));
+        const p = Number(url.searchParams.get('page'));
+        return jsonResponse({ ...page([item(1)], p), pageSize: size });
+      }
+      return catalogs(url.pathname);
+    });
+    const router = await mountApp('/empresas?page=3');
+    await screen.findAllByText('EMPRESA 1 S.A.');
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText('Filas por página'), '50');
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ pageSize: 50 }));
+    expect((router.state.location.search as { page?: number }).page).toBeUndefined();
+    await waitFor(() =>
+      expect(
+        mocked.calls.some(
+          (c) =>
+            c.url.pathname === '/api/companies' &&
+            c.url.searchParams.get('pageSize') === '50' &&
+            c.url.searchParams.get('page') === '1',
+        ),
+      ).toBe(true),
+    );
+    expect(await screen.findByText(/1–50 de/)).toBeTruthy();
   });
 
   test('los filtros viven en la URL y la URL inicial se aplica a la consulta', async () => {

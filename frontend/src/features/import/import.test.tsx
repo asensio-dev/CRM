@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import type { ImportJobDto } from '@axiom/contracts';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { jsonResponse, mockFetch, mountApp } from '@/test/helpers';
 import { validateImportFile } from './queries';
@@ -117,5 +117,55 @@ describe('ImportPage', () => {
       .upload((await screen.findByLabelText('Archivo Excel (.xlsx)')) as HTMLInputElement, xlsx());
     expect(await screen.findByText('Hoja no encontrada')).toBeTruthy();
     expect(screen.getByText('Fallido')).toBeTruthy();
+  });
+});
+
+describe('Filas rechazadas', () => {
+  test('paginación del servidor con filas por página y filtro en la página', async () => {
+    mocked = mockFetch(({ url, method }) => {
+      if (method === 'POST') return jsonResponse({ jobId: 4 }, 202);
+      if (url.pathname === '/api/import/4') {
+        return jsonResponse(job({ id: 4, status: 'COMPLETADO', rejectedCount: 45 }));
+      }
+      if (url.pathname === '/api/import/4/rejections') {
+        const page = Number(url.searchParams.get('page'));
+        const pageSize = Number(url.searchParams.get('pageSize'));
+        const all = Array.from({ length: 45 }, (_, i) => ({
+          id: i + 1,
+          rowNumber: i + 2,
+          reason: i === 0 ? 'Teléfono inválido' : 'RUC vacío',
+        }));
+        return jsonResponse({
+          items: all.slice((page - 1) * pageSize, page * pageSize),
+          page,
+          pageSize,
+          total: all.length,
+        });
+      }
+      return undefined;
+    });
+    await mountApp('/importacion');
+    const user = userEvent.setup();
+    await user.upload(
+      (await screen.findByLabelText('Archivo Excel (.xlsx)')) as HTMLInputElement,
+      xlsx(),
+    );
+    expect(await screen.findByText('1–20 de 45 filas')).toBeTruthy();
+    await user.type(screen.getByLabelText('Filtrar filas rechazadas'), 'telefono');
+    expect(screen.getByText('Teléfono inválido')).toBeTruthy();
+    expect(screen.queryByText('RUC vacío')).toBeNull();
+
+    const nav = screen.getByText('1–20 de 45 filas').closest('nav') as HTMLElement;
+    await user.selectOptions(within(nav).getByLabelText('Filas por página'), '50');
+    await waitFor(() =>
+      expect(
+        mocked.calls.some(
+          (c) =>
+            c.url.pathname === '/api/import/4/rejections' &&
+            c.url.searchParams.get('pageSize') === '50',
+        ),
+      ).toBe(true),
+    );
+    expect(await screen.findByText('1–45 de 45 filas')).toBeTruthy();
   });
 });

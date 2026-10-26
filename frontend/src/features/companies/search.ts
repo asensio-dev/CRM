@@ -7,6 +7,8 @@ import {
 import { z } from 'zod';
 
 export const COMPANIES_PAGE_SIZE = 25;
+/** Tamaños de página que se ofrecen en el listado (el API admite hasta 100). */
+export const COMPANIES_PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 const intOrUndef = (min: number) =>
   z.preprocess(
@@ -37,6 +39,15 @@ export const CompaniesSearchSchema = z.object({
     (v) => (v === '' || v === null ? undefined : v),
     z.coerce.number().int().min(1).catch(1).default(1),
   ),
+  pageSize: z.preprocess(
+    (v) => (v === '' || v === null ? undefined : v),
+    z.coerce
+      .number()
+      .int()
+      .refine((n) => (COMPANIES_PAGE_SIZE_OPTIONS as readonly number[]).includes(n))
+      .catch(COMPANIES_PAGE_SIZE)
+      .default(COMPANIES_PAGE_SIZE),
+  ),
   sortBy: z.enum(COMPANY_SORT_FIELDS).catch('legalName').default('legalName'),
   sortDir: z.enum(['asc', 'desc']).catch('asc').default('asc'),
 });
@@ -61,6 +72,7 @@ export function toUrlSearch(search: CompaniesSearch): Record<string, unknown> {
   if (search.maxEmployees !== undefined) out.maxEmployees = search.maxEmployees;
   if (search.hasPhone) out.hasPhone = true;
   if (search.page > 1) out.page = search.page;
+  if (search.pageSize !== COMPANIES_PAGE_SIZE) out.pageSize = search.pageSize;
   if (search.sortBy !== 'legalName') out.sortBy = search.sortBy;
   if (search.sortDir !== 'asc') out.sortDir = search.sortDir;
   return out;
@@ -104,7 +116,7 @@ export function toApiQueryString(search: CompaniesSearch): string {
   for (const [k, v] of Object.entries(query)) if (v !== undefined && v !== '') p.set(k, String(v));
   for (const s of search.status ?? []) p.append('status', s satisfies PipelineStatus);
   p.set('page', String(search.page));
-  p.set('pageSize', String(COMPANIES_PAGE_SIZE));
+  p.set('pageSize', String(search.pageSize));
   p.set('sortBy', search.sortBy);
   p.set('sortDir', search.sortDir);
   return p.toString();

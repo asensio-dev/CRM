@@ -18,7 +18,7 @@ import { CreateCompanyDialog } from './company-dialogs';
 import { CompanyFilters } from './company-filters';
 import { useCompaniesList } from './queries';
 import {
-  COMPANIES_PAGE_SIZE,
+  COMPANIES_PAGE_SIZE_OPTIONS,
   type CompaniesFilters,
   type CompaniesSearch,
   countActiveFilters,
@@ -43,7 +43,9 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
     id: 'ruc',
     header: 'RUC',
     enableSorting: false,
-    cell: ({ row }) => <span className="font-mono text-xs">{row.original.ruc}</span>,
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">{row.original.ruc}</span>
+    ),
   },
   {
     id: 'legalName',
@@ -53,7 +55,7 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
     meta: { className: 'min-w-64' },
     cell: ({ row }) => (
       <div className="max-w-sm">
-        <p className="truncate font-medium">{row.original.legalName}</p>
+        <p className="truncate font-medium text-foreground">{row.original.legalName}</p>
         {row.original.tradeName && (
           <p className="truncate text-xs text-muted-foreground">{row.original.tradeName}</p>
         )}
@@ -138,7 +140,13 @@ export function CompaniesPage() {
   const onFilters = (patch: Partial<CompaniesFilters>) =>
     setSearch({ ...search, ...patch, page: 1 });
   const clear = () =>
-    setSearch(parseCompaniesSearch({ sortBy: search.sortBy, sortDir: search.sortDir }));
+    setSearch(
+      parseCompaniesSearch({
+        sortBy: search.sortBy,
+        sortDir: search.sortDir,
+        pageSize: search.pageSize,
+      }),
+    );
 
   const sorting: SortingState = [{ id: search.sortBy, desc: search.sortDir === 'desc' }];
   const onSortingChange: OnChangeFn<SortingState> = (updater) => {
@@ -174,8 +182,9 @@ export function CompaniesPage() {
         ) : list.isError && !data ? (
           <QueryError error={list.error} onRetry={() => void list.refetch()} />
         ) : data && data.items.length === 0 ? (
-          <div className="p-6">
+          <div className="p-5">
             <EmptyState
+              className="border-0 bg-transparent"
               icon={filtered ? SearchX : Building2}
               title={filtered ? 'Sin resultados' : 'Aún no hay empresas'}
               description={
@@ -221,10 +230,13 @@ export function CompaniesPage() {
             />
             <Pagination
               page={data.page}
-              pageSize={data.pageSize || COMPANIES_PAGE_SIZE}
+              pageSize={data.pageSize || search.pageSize}
               total={data.total}
               disabled={list.isFetching}
+              itemLabel="empresas"
               onPageChange={(page) => setSearch({ ...search, page })}
+              pageSizeOptions={COMPANIES_PAGE_SIZE_OPTIONS}
+              onPageSizeChange={(pageSize) => setSearch({ ...search, pageSize, page: 1 })}
             />
           </>
         ) : null}

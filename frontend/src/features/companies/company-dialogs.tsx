@@ -40,11 +40,11 @@ import { useAddBranch, useCreateCompany, useUpdateCompany } from './queries';
 function applyServerError<T extends FieldValues>(
   form: UseFormReturn<T>,
   error: unknown,
-  ducplicatedField?: string,
+  duplicatedField?: string,
 ): string | null {
   if (error instanceof HttpError) {
-    if (error.code === 'COMPANY_RUC_DUPLICATED' && ducplicatedField) {
-      form.setError(ducplicatedField as never, {
+    if (error.code === 'COMPANY_RUC_DUPLICATED' && duplicatedField) {
+      form.setError(duplicatedField as never, {
         message: 'Ya existe una empresa con este RUC.',
       });
       return null;
@@ -69,7 +69,7 @@ function SubmitFooter({
   onCancel: () => void;
 }) {
   return (
-    <DialogFooter>
+    <DialogFooter className="-mx-6 mt-2 border-t px-6 pt-4">
       <Button variant="outline" onClick={onCancel} disabled={pending}>
         Cancelar
       </Button>
@@ -84,7 +84,7 @@ function SubmitFooter({
 function FormError({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+    <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
       {message}
     </p>
   );

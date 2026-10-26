@@ -130,3 +130,57 @@ describe('UsersPage', () => {
     });
   });
 });
+
+describe('UsersPage: búsqueda y paginación', () => {
+  const many = Array.from({ length: 130 }, (_, i) =>
+    user(i + 1, {
+      fullName: i === 124 ? 'Íñigo Láinez' : `Usuario ${i + 1}`,
+      role: i % 10 === 0 ? 'SUPERVISOR' : 'EJECUTIVO',
+    }),
+  );
+  const paged = ({ url, method }: { url: URL; method: string }) => {
+    if (url.pathname !== '/api/users' || method !== 'GET') return undefined;
+    const page = Number(url.searchParams.get('page'));
+    const size = Number(url.searchParams.get('pageSize'));
+    return jsonResponse({
+      items: many.slice((page - 1) * size, page * size),
+      page,
+      pageSize: size,
+      total: many.length,
+    });
+  };
+
+  test('trae todas las páginas del API y pagina en cliente', async () => {
+    mocked = mockFetch(paged);
+    await mountApp('/usuarios');
+    expect(await screen.findByText('1–20 de 130 usuarios')).toBeTruthy();
+    const gets = mocked.calls.filter((c) => c.url.pathname === '/api/users');
+    expect(gets.map((c) => c.url.searchParams.get('page'))).toEqual(['1', '2']);
+    expect(gets.every((c) => c.url.searchParams.get('pageSize') === '100')).toBe(true);
+
+    const u = userEvent.setup();
+    await u.click(screen.getByRole('button', { name: 'Página siguiente' }));
+    expect((await screen.findAllByText('Usuario 21')).length).toBeGreaterThan(0);
+    await u.selectOptions(screen.getByLabelText('Filas por página'), '50');
+    expect(await screen.findByText('1–50 de 130 usuarios')).toBeTruthy();
+  });
+
+  test('busca sin tildes por nombre o correo y filtra por rol', async () => {
+    mocked = mockFetch(paged);
+    await mountApp('/usuarios');
+    await screen.findByText('1–20 de 130 usuarios');
+    const u = userEvent.setup();
+    await u.type(screen.getByLabelText('Buscar usuarios'), 'inigo lainez');
+    expect(await screen.findByText('1–1 de 1 usuarios')).toBeTruthy();
+    expect(screen.getAllByText('Íñigo Láinez').length).toBeGreaterThan(0);
+
+    await u.clear(screen.getByLabelText('Buscar usuarios'));
+    await u.selectOptions(screen.getByLabelText('Filtrar por rol'), 'SUPERVISOR');
+    expect(await screen.findByText('1–13 de 13 usuarios')).toBeTruthy();
+
+    await u.type(screen.getByLabelText('Buscar usuarios'), 'nadie-coincide');
+    expect(await screen.findByText('Sin resultados')).toBeTruthy();
+    await u.click(screen.getAllByRole('button', { name: 'Limpiar filtros' })[0] as HTMLElement);
+    expect(await screen.findByText('1–20 de 130 usuarios')).toBeTruthy();
+  });
+});
