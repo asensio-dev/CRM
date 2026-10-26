@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { ChevronsLeft, ChevronsRight, Hexagon, X } from 'lucide-react';
 import { useSessionStore } from '@/features/auth/session-store';
+import { APP_VERSION } from '@/shared/lib/app-version';
 import { cn } from '@/shared/lib/cn';
 import { Button } from '@/shared/ui/button';
 import { navForRole } from '../navigation';
@@ -71,6 +72,13 @@ export function Sidebar() {
             <Toggle aria-hidden="true" />
             {!sidebarCollapsed && 'Contraer'}
           </Button>
+          <p
+            data-testid="app-version"
+            className="mt-2 text-center text-[11px] text-sidebar-muted/70"
+            title={`AXIOM CRM v${APP_VERSION}`}
+          >
+            v{APP_VERSION}
+          </p>
         </div>
       </aside>
 

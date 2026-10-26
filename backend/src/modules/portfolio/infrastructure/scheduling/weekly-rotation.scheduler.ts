@@ -1,6 +1,7 @@
 import { SETTING_DEFAULTS } from '@axiom/contracts';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { APP_CONFIG, type AppConfig } from '../../../../shared/infrastructure/config/env';
 import { safeErrorLog } from '../../../../shared/infrastructure/http/domain-exception.filter';
 import { RunWeeklyRotationUseCase } from '../../application/use-cases/run-weekly-rotation.use-case';
 
@@ -17,13 +18,18 @@ export const WEEKLY_ROTATION_CRON = '0 6 * * 1';
 export class WeeklyRotationScheduler {
   private readonly logger = new Logger(WeeklyRotationScheduler.name);
 
-  constructor(private readonly runWeekly: RunWeeklyRotationUseCase) {}
+  constructor(
+    private readonly runWeekly: RunWeeklyRotationUseCase,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
+  ) {}
 
   @Cron(WEEKLY_ROTATION_CRON, {
     name: 'portfolio-weekly-rotation',
     timeZone: SETTING_DEFAULTS.TIMEZONE.value,
   })
   async handle(): Promise<void> {
+    // Con varias instancias solo una (SCHEDULER_ENABLED=true) ejecuta el job.
+    if (!this.config.SCHEDULER_ENABLED) return;
     try {
       const r = await this.runWeekly.execute();
       this.logger.log(

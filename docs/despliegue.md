@@ -29,6 +29,8 @@ Validadas al arrancar con Zod (`backend/src/shared/infrastructure/config/env.ts`
 | `PORT` | No (`3000`) | Puerto HTTP de la API |
 | `CORS_ORIGIN` | No (`http://localhost:5173`) | Origen permitido para CORS. En producción, el origen público del frontend |
 | `TZ` | No (`America/Managua`) | Validada al arrancar. La zona de negocio real es el parámetro `TIMEZONE` de la tabla `settings` |
+| `SCHEDULER_ENABLED` | No (`true`) | `true`/`false`. Activa los trabajos programados de la API (rotación semanal y limpieza diaria de refresh tokens). Con varias instancias, `true` en **exactamente una** y `false` en el resto (ver §7) |
+| `TRUST_PROXY` | No (sin definir) | Detrás de un proxy inverso: saltos (`1`) o IPs/subredes de confianza (ver §5.1) |
 | `NODE_ENV` | Recomendada: `production` | Con `production`: cookies `Secure`, Swagger desactivado y los scripts de datos demo se niegan a correr |
 | `SHADOW_DATABASE_URL` | No | Base sombra de `prisma migrate dev`. Solo desarrollo; en producción no se usa |
 | `SEED_ADMIN_EMAIL` | No | Email del administrador inicial que crea `db:seed`. Solo hace falta la primera vez |
@@ -180,13 +182,13 @@ Opciones para dejarla como servicio:
 - **Linux o Windows con gestor de procesos:** PM2 admite Bun con `--interpreter bun`, por ejemplo `pm2 start src/main.ts --interpreter bun --name axiom-api` desde `backend/`.
 - **Docker (esquema):** imagen basada en `oven/bun:1.4`, copia del monorepo, `bun install --frozen-lockfile`, `WORKDIR /app/backend`, `CMD ["bun", "src/main.ts"]`. Las variables se pasan al contenedor con `--env-file` o un gestor de secretos, nunca dentro de la imagen.
 
-Comprobación tras arrancar: `GET /api/health` debe responder `200` con `{ "status": "ok", "database": "up" }`.
+Comprobación tras arrancar: `GET /api/health` debe responder `200` con `{ "status": "ok", "database": "up", "version": "1.0.0" }`.
 
 ## 7. Job semanal de rotación: una sola instancia
 
 La rotación de carteras (`POST` manual o cron) corre **dentro del proceso de la API**: `@nestjs/schedule` ejecuta el cron `0 6 * * 1` (lunes 06:00, zona `America/Managua`) en cada instancia que arranca.
 
-> **Ejecuta exactamente una instancia de la API que tenga el cron activo.** Con varias réplicas, cada una dispararía la rotación el lunes. El código tiene protección (índices únicos y la idempotencia del caso de uso), pero el objetivo es que solo corra una vez. Si necesitas escalar horizontalmente, deja el cron en una sola réplica o ejecuta la rotación desde un proceso dedicado.
+> **Ejecuta exactamente una instancia de la API con `SCHEDULER_ENABLED=true`** (valor por defecto). En las demás réplicas define `SCHEDULER_ENABLED=false`: sus crons (rotación semanal y limpieza diaria de `refresh_tokens`, 03:30) no hacen nada. El código además tiene protección (índices únicos e idempotencia del caso de uso) por si coincidieran, pero el objetivo es que solo corra una vez. El endpoint manual `POST /api/portfolio/run-weekly` sigue disponible en todas las instancias.
 
 Notas operativas:
 

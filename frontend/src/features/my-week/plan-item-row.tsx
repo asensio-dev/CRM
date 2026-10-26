@@ -2,11 +2,11 @@ import type { MyWeekItemDto, PipelineStateDto } from '@axiom/contracts';
 import { Link } from '@tanstack/react-router';
 import { CalendarClock, CheckCircle2, Circle, ClipboardCheck, Phone, PhoneOff } from 'lucide-react';
 import { ChangeStatusMenu } from '@/features/pipeline';
-import { AnyStatusBadge } from '@/features/portfolio/status-cell';
 import { cn } from '@/shared/lib/cn';
 import { formatAbsolute, formatRelative } from '@/shared/lib/format-date';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
+import { StatusBadge } from '@/shared/ui/status-badge';
 import { REASON_META } from './plan-utils';
 
 export function companyDisplayName(item: MyWeekItemDto): string {
@@ -68,7 +68,7 @@ export function PlanItemRow({
             <Badge variant="outline" className={reason.badge} title={reason.hint}>
               {reason.label}
             </Badge>
-            <AnyStatusBadge status={item.status} />
+            <StatusBadge status={item.status} />
           </div>
           <dl className="mt-2 grid gap-0.5 text-xs text-muted-foreground">
             <div className="flex gap-1">

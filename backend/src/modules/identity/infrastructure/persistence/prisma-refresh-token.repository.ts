@@ -43,6 +43,21 @@ export class PrismaRefreshTokenRepository implements RefreshTokenRepository {
     return count;
   }
 
+  async deleteStale(cutoff: Date, limit: number): Promise<number> {
+    // deleteMany no admite LIMIT: se eligen los ids del lote y se borran por clave.
+    const rows = await this.prisma.db.refreshToken.findMany({
+      where: { OR: [{ expiresAt: { lt: cutoff } }, { revokedAt: { lt: cutoff } }] },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+      take: limit,
+    });
+    if (rows.length === 0) return 0;
+    const { count } = await this.prisma.db.refreshToken.deleteMany({
+      where: { id: { in: rows.map((r) => r.id) } },
+    });
+    return count;
+  }
+
   async revokeAllForUser(userId: number, now: Date): Promise<void> {
     await this.prisma.db.refreshToken.updateMany({
       where: { userId, revokedAt: null },

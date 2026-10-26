@@ -22,6 +22,13 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...valid, TRUST_PROXY: 'true' })).toThrow(/TRUST_PROXY/);
   });
 
+  test('SCHEDULER_ENABLED defaults to true and only accepts true/false', () => {
+    expect(loadConfig(valid).SCHEDULER_ENABLED).toBe(true);
+    expect(loadConfig({ ...valid, SCHEDULER_ENABLED: 'true' }).SCHEDULER_ENABLED).toBe(true);
+    expect(loadConfig({ ...valid, SCHEDULER_ENABLED: 'false' }).SCHEDULER_ENABLED).toBe(false);
+    expect(() => loadConfig({ ...valid, SCHEDULER_ENABLED: 'no' })).toThrow(/SCHEDULER_ENABLED/);
+  });
+
   test('CORS_ORIGIN cannot be a wildcard (credentials are sent)', () => {
     expect(() => loadConfig({ ...valid, CORS_ORIGIN: '*' })).toThrow(/CORS_ORIGIN/);
   });

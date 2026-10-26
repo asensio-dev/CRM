@@ -16,6 +16,7 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { Pagination } from '@/shared/ui/pagination';
 import { QueryError } from '@/shared/ui/query-error';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { StatusBadge } from '@/shared/ui/status-badge';
 import { TableSkeleton } from '@/shared/ui/table';
 import { ASSIGNMENTS_PAGE_SIZE, useAssignments, useCurrentCycle } from './api';
 import {
@@ -27,7 +28,7 @@ import {
 import { formatLocalRange, percent } from './format';
 import { ProgressBar } from './progress-bar';
 import { RunWeeklyButton } from './run-weekly';
-import { AnyStatusBadge, LastContact } from './status-cell';
+import { LastContact } from './status-cell';
 
 const nf = new Intl.NumberFormat('es-NI');
 
@@ -92,7 +93,7 @@ function AssignmentCard({
             {nf.format(a.employeeCount)} empleados
           </p>
         </div>
-        <AnyStatusBadge status={a.status} />
+        <StatusBadge status={a.status} />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <span>
@@ -263,7 +264,7 @@ export function PortfolioPage() {
         id: 'status',
         header: 'Estado',
         enableSorting: false,
-        cell: ({ row }) => <AnyStatusBadge status={row.original.status} />,
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
         id: 'employees',

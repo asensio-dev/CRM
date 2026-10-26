@@ -18,6 +18,14 @@ export const EnvSchema = z.object({
     .refine((v) => !v.split(',').some((o) => o.trim() === '*'), 'CORS_ORIGIN no puede ser *'),
   TZ: z.string().default('America/Managua'),
   /**
+   * Trabajos programados (rotación semanal, limpieza de refresh tokens). Con varias instancias de
+   * la API debe ser `true` en EXACTAMENTE una; en el resto `false`. Acepta `true`/`false`.
+   */
+  SCHEDULER_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
+  /**
    * Detrás de un proxy inverso (nginx, IIS, Azure…): valor de `trust proxy` de Express para que
    * `req.ip` (rate limit del login) sea la IP real del cliente y no la del proxy. Número de saltos
    * (`1`), o lista de IPs/subredes de confianza (`loopback`, `10.0.0.0/8`). Sin definir = no se

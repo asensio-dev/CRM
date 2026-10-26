@@ -177,7 +177,23 @@ describe('ImportCompaniesUseCase', () => {
 
     await expect(useCase.execute({ jobId: 1, filePath: 'x.xlsx' })).rejects.toThrow('boom');
     expect(jobs.status).toBe('FALLIDO');
-    expect(jobs.error).toBe('boom');
+    // El mensaje crudo no se persiste (podría traer datos personales).
+    expect(jobs.error).toBe('Error interno durante la importación (código Error)');
+    expect(jobs.error).not.toContain('boom');
+  });
+
+  test('errores con código (driver/Prisma) guardan solo el código, nunca el mensaje', async () => {
+    const { writer, jobs, useCase } = setup(
+      Array.from({ length: IMPORT_BATCH_SIZE + 1 }, (_, i) => company(i + 1)),
+    );
+    writer.writeBatch = async () => {
+      throw Object.assign(new Error('Unique constraint failed on cedula 001-010190-0001A'), {
+        code: 'P2002',
+      });
+    };
+    await expect(useCase.execute({ jobId: 1, filePath: 'x.xlsx' })).rejects.toThrow();
+    expect(jobs.error).toBe('Error interno durante la importación (código P2002)');
+    expect(jobs.error).not.toContain('cedula');
   });
 
   test('falla el job si el archivo supera el tope de filas', async () => {

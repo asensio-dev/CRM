@@ -8,6 +8,7 @@ import { GetMeUseCase } from './application/use-cases/get-me.use-case';
 import { ListUsersUseCase } from './application/use-cases/list-users.use-case';
 import { LoginUseCase } from './application/use-cases/login.use-case';
 import { LogoutUseCase } from './application/use-cases/logout.use-case';
+import { PurgeRefreshTokensUseCase } from './application/use-cases/purge-refresh-tokens.use-case';
 import { RefreshSessionUseCase } from './application/use-cases/refresh-session.use-case';
 import { ResetUserPasswordUseCase } from './application/use-cases/reset-user-password.use-case';
 import { UpdateUserUseCase } from './application/use-cases/update-user.use-case';
@@ -18,6 +19,7 @@ import { LOGIN_THROTTLERS } from './infrastructure/http/login-throttling';
 import { UsersController } from './infrastructure/http/users.controller';
 import { PrismaRefreshTokenRepository } from './infrastructure/persistence/prisma-refresh-token.repository';
 import { PrismaUserRepository } from './infrastructure/persistence/prisma-user.repository';
+import { RefreshTokenPurgeScheduler } from './infrastructure/scheduling/refresh-token-purge.scheduler';
 import { BunPasswordHasher } from './infrastructure/security/bun-password-hasher';
 import { JoseTokenIssuer } from './infrastructure/security/jose-token-issuer';
 
@@ -43,6 +45,8 @@ import { JoseTokenIssuer } from './infrastructure/security/jose-token-issuer';
     UpdateUserUseCase,
     ResetUserPasswordUseCase,
     ListUsersUseCase,
+    PurgeRefreshTokensUseCase,
+    RefreshTokenPurgeScheduler,
   ],
 })
 export class IdentityModule {}

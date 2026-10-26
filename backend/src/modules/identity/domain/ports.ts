@@ -62,5 +62,10 @@ export interface RefreshTokenRepository {
   revokeAllForUser(userId: number, now: Date): Promise<void>;
   /** Revoca los tokens activos del usuario emitidos desde `since`. Devuelve cuántos revocó. */
   revokeActiveIssuedSince(userId: number, since: Date, now: Date): Promise<number>;
+  /**
+   * Borra como máximo `limit` filas caducadas (`expiresAt < cutoff`) o revocadas (`revokedAt < cutoff`)
+   * antes de `cutoff`. Devuelve cuántas borró (si es `limit`, puede quedar más).
+   */
+  deleteStale(cutoff: Date, limit: number): Promise<number>;
 }
 export const REFRESH_TOKEN_REPOSITORY = Symbol('RefreshTokenRepository');

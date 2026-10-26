@@ -53,7 +53,7 @@ Las listas paginadas aceptan `page` (≥ 1, por defecto 1) y `pageSize` (1–100
 
 | Método | Ruta | Roles | Entrada | Respuesta | Errores |
 |---|---|---|---|---|---|
-| GET | `/api/health` | Pública | — | `{ status: "ok", database: "up" }` | 500 si no hay conexión con la base |
+| GET | `/api/health` | Pública | — | `{ status: "ok", database: "up", version: "1.0.0" }` | 500 si no hay conexión con la base |
 
 ### 4.2 Autenticación (`identity`, `auth`)
 

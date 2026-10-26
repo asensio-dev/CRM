@@ -27,6 +27,20 @@ export const PROGRESS_EVERY_BATCHES = 10;
 /** Tope de filas por importación (el Excel real tiene ~127 k): acota CPU, memoria y escrituras. */
 export const MAX_IMPORT_ROWS = 500_000;
 
+/**
+ * Mensaje que se persiste en `import_jobs.errorMessage`. Solo los `DomainError` (textos propios,
+ * sin valores de filas); cualquier otro error (driver, Prisma, exceljs…) puede incluir datos
+ * personales en su mensaje, así que se reduce a un texto genérico con el código o tipo del error.
+ * El detalle técnico se registra aparte con el logger seguro del controlador (`describeError`).
+ */
+export function safeFailureMessage(error: unknown): string {
+  if (error instanceof DomainError) return error.message.slice(0, 2000);
+  const code = (error as { code?: unknown } | null)?.code;
+  const label =
+    typeof code === 'string' && code ? code : error instanceof Error ? error.name : 'desconocido';
+  return `Error interno durante la importación (código ${label.slice(0, 100)})`;
+}
+
 export interface ImportCompaniesInput {
   jobId: number;
   filePath: string;
@@ -195,8 +209,7 @@ export class ImportCompaniesUseCase implements UseCase<ImportCompaniesInput, Imp
       await this.jobs.complete(jobId, counters());
       return s;
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await this.jobs.fail(jobId, counters(), message.slice(0, 2000)).catch(() => undefined);
+      await this.jobs.fail(jobId, counters(), safeFailureMessage(error)).catch(() => undefined);
       throw error;
     }
   }

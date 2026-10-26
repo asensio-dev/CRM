@@ -6,6 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { APP_VERSION } from './shared/infrastructure/config/app-version';
 import { APP_CONFIG, type AppConfig } from './shared/infrastructure/config/env';
 import { DomainExceptionFilter } from './shared/infrastructure/http/domain-exception.filter';
 
@@ -33,7 +34,7 @@ async function bootstrap() {
         .setDescription(
           'API del CRM de cartera rotativa. Autenticación: access token en `Authorization: Bearer`; el refresh token viaja en cookie httpOnly.',
         )
-        .setVersion('0.1.0')
+        .setVersion(APP_VERSION)
         .addBearerAuth()
         .build(),
     );

@@ -4,6 +4,7 @@ import { Global, type INestApplication, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
 import { CLOCK, EVENT_BUS, UNIT_OF_WORK } from '../../../../shared/application';
+import { APP_CONFIG } from '../../../../shared/infrastructure/config/env';
 import { DomainExceptionFilter } from '../../../../shared/infrastructure/http/domain-exception.filter';
 import { PORTFOLIO_READ_MODEL } from '../../application/queries/read-ports';
 import {
@@ -29,8 +30,9 @@ for (let i = 1; i <= 150; i++) p.world.addCompanies(1, { employeeCount: i }, i);
     { provide: UNIT_OF_WORK, useValue: p.uow },
     { provide: EVENT_BUS, useValue: { publishAll: async () => {} } },
     { provide: CLOCK, useValue: new MutableClock(new Date('2026-10-26T12:00:00Z')) },
+    { provide: APP_CONFIG, useValue: { SCHEDULER_ENABLED: false } },
   ],
-  exports: [UNIT_OF_WORK, EVENT_BUS, CLOCK],
+  exports: [UNIT_OF_WORK, EVENT_BUS, CLOCK, APP_CONFIG],
 })
 class TestSharedModule {}
 

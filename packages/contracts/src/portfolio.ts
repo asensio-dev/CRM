@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { PipelineStatus } from './pipeline';
 
 export const PLAN_ITEM_REASONS = ['SEGUIMIENTO', 'NUEVA', 'REINTENTO', 'ROTACION'] as const;
 export const PlanItemReasonSchema = z.enum(PLAN_ITEM_REASONS);
@@ -74,7 +75,7 @@ export interface MyWeekItemDto {
   legalName: string;
   tradeName: string | null;
   phone: string | null;
-  status: string;
+  status: PipelineStatus;
   reason: PlanItemReason;
   priority: number;
   contactedAt: string | null;
@@ -125,7 +126,7 @@ export interface AssignmentDto {
   legalName: string;
   tradeName: string | null;
   phone: string | null;
-  status: string;
+  status: PipelineStatus;
   employeeCount: number;
   lastContactAt: string | null;
   userId: number;
