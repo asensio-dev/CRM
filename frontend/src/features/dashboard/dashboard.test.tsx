@@ -6,7 +6,7 @@ import type {
   SummaryDto,
   WeeklyActivityDto,
 } from '@axiom/contracts';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { cloneElement, type ReactElement } from 'react';
 import { jsonResponse, mockFetch, mountApp } from '@/test/helpers';
@@ -375,11 +375,20 @@ describe('DashboardPage', () => {
       }
     };
 
+  /** Abre una pestaña del tablero. */
+  async function openTab(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
+    await user.click(await screen.findByRole('tab', { name }));
+  }
+
   test('carga indicadores, embudo, cobertura y ejecutivos con los filtros por defecto', async () => {
     mocked = mockFetch(handler());
     await mountApp('/tablero', 'SUPERVISOR');
+    const user = userEvent.setup();
     expect(await screen.findByTestId('kpi-compliance')).toBeTruthy();
+    await openTab(user, /Pipeline/);
     expect(await screen.findByText('Embudo del pipeline')).toBeTruthy();
+    // La cobertura del ciclo comparte pestaña con la tabla de ejecutivos.
+    await openTab(user, /Ejecutivos/);
     expect(await screen.findByText(/Ciclo 4 · semana 2 de 3/)).toBeTruthy();
     expect((await screen.findAllByText('Ana Ejecutiva')).length).toBeGreaterThan(0);
     const summaryCall = mocked.calls.find((c) => c.url.pathname === '/api/analytics/summary');
@@ -394,7 +403,8 @@ describe('DashboardPage', () => {
     const router = await mountApp('/tablero', 'SUPERVISOR');
     const user = userEvent.setup();
     // Espera a que el catálogo de ejecutivos esté cargado (tabla del tablero).
-    await screen.findByText('Ejecutivos');
+    await openTab(user, /Ejecutivos/);
+    await screen.findAllByText('Ana Ejecutiva');
     await user.click(await screen.findByLabelText('Ejecutivo'));
     await user.click(await screen.findByRole('option', { name: 'Ana Ejecutiva' }));
     await waitFor(() =>
@@ -412,10 +422,12 @@ describe('DashboardPage', () => {
     mocked = mockFetch(handler());
     await mountApp('/tablero', 'ADMIN');
     await screen.findByTestId('kpi-compliance');
+    const user = userEvent.setup();
+    await openTab(user, /Actividad/);
     await waitFor(() =>
       expect(document.querySelectorAll('svg.recharts-surface').length).toBeGreaterThanOrEqual(2),
     );
-    await userEvent.setup().click(await screen.findByLabelText('Ver actividad por ejecutivo'));
+    await user.click(await screen.findByLabelText('Ver actividad por ejecutivo'));
     await waitFor(() =>
       expect(
         mocked.calls.some(
@@ -438,7 +450,10 @@ describe('DashboardPage', () => {
   test('estados vacíos cuando no hay actividad', async () => {
     mocked = mockFetch(handler(true));
     await mountApp('/tablero', 'ADMIN');
+    const user = userEvent.setup();
+    await openTab(user, /Pipeline/);
     expect(await screen.findByText('Sin datos en el período')).toBeTruthy();
+    await openTab(user, /Actividad/);
     expect((await screen.findAllByText('Sin actividad registrada')).length).toBe(2);
   });
 
@@ -456,5 +471,59 @@ describe('DashboardPage', () => {
     fail = false;
     await userEvent.setup().click(retry);
     expect(await screen.findByTestId('kpi-compliance')).toBeTruthy();
+  });
+
+  test('pestañas: Resumen por defecto solo con los KPI; Pipeline muestra el embudo', async () => {
+    mocked = mockFetch(handler());
+    await mountApp('/tablero', 'ADMIN');
+    const user = userEvent.setup();
+    await screen.findByTestId('kpi-compliance');
+    expect(screen.getByRole('tab', { name: 'Resumen' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.queryByText('Embudo del pipeline')).toBeNull();
+    expect(screen.queryByText(/Ciclo 4 · semana 2 de 3/)).toBeNull();
+    // Los filtros quedan fuera de las pestañas.
+    expect(screen.getByRole('form', { name: 'Filtros del tablero' })).toBeTruthy();
+
+    await openTab(user, /Pipeline/);
+    expect(screen.getByRole('tab', { name: 'Pipeline' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
+    expect(await screen.findByText('Embudo del pipeline')).toBeTruthy();
+    expect(screen.queryByTestId('kpi-compliance')).toBeNull();
+    expect(screen.getByRole('form', { name: 'Filtros del tablero' })).toBeTruthy();
+
+    await openTab(user, /Ejecutivos/);
+    expect(await screen.findByText(/Ciclo 4 · semana 2 de 3/)).toBeTruthy();
+    expect((await screen.findAllByText('Ana Ejecutiva')).length).toBeGreaterThan(0);
+  });
+
+  test('todas las consultas se lanzan al montar, sea cual sea la pestaña', async () => {
+    mocked = mockFetch(handler());
+    await mountApp('/tablero', 'ADMIN');
+    await screen.findByTestId('kpi-compliance');
+    const paths = [
+      '/api/analytics/summary',
+      '/api/analytics/funnel',
+      '/api/analytics/weekly-activity',
+      '/api/analytics/executives',
+      '/api/analytics/cycle-coverage',
+    ];
+    await waitFor(() => {
+      for (const p of paths) expect(mocked.calls.some((c) => c.url.pathname === p)).toBe(true);
+    });
+  });
+
+  test('la pestaña elegida se recuerda al volver al tablero', async () => {
+    mocked = mockFetch(handler());
+    await mountApp('/tablero', 'ADMIN');
+    await openTab(userEvent.setup(), /Pipeline/);
+    await screen.findByText('Embudo del pipeline');
+
+    cleanup();
+    await mountApp('/tablero', 'ADMIN');
+    expect(
+      (await screen.findByRole('tab', { name: 'Pipeline' })).getAttribute('aria-selected'),
+    ).toBe('true');
+    expect(await screen.findByText('Embudo del pipeline')).toBeTruthy();
   });
 });

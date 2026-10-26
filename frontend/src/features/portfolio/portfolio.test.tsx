@@ -7,7 +7,7 @@ import type {
   RunWeeklyResultDto,
   WeekInfoDto,
 } from '@axiom/contracts';
-import { screen, waitFor, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { jsonResponse, mockFetch, mountApp, type RecordedCall } from '@/test/helpers';
 
@@ -99,6 +99,14 @@ async function pick(u: ReturnType<typeof userEvent.setup>, trigger: HTMLElement,
   await u.click(await screen.findByRole('option', { name }));
 }
 
+/** Abre una pestaña de la Cartera (el nombre puede llevar un recuento, de ahí la regex). */
+async function openTab(u: ReturnType<typeof userEvent.setup>, name: RegExp) {
+  await u.click(await screen.findByRole('tab', { name }));
+}
+
+const EJECUTIVOS = /^Ejecutivos/;
+const EMPRESAS = /Empresas asignadas/;
+
 const posts = () => mocked?.calls.filter((c) => c.method === 'POST') ?? [];
 
 describe('Cartera: lectura', () => {
@@ -110,17 +118,20 @@ describe('Cartera: lectura', () => {
     ];
     mocked = mockFetch(baseHandler());
     await mountApp('/cartera', 'ADMIN');
+    const u = userEvent.setup();
 
     expect(await screen.findByText('Ciclo #4')).toBeTruthy();
     expect(screen.getByText('Semana 2 de 3')).toBeTruthy();
     expect(screen.getByText('19 oct – 8 nov')).toBeTruthy();
 
+    await openTab(u, EJECUTIVOS);
     const card = screen.getByTestId('exec-3');
     expect(within(card).getByText('Bruno Ejecutivo')).toBeTruthy();
     expect(within(card).getByText('30/60 · 50%')).toBeTruthy();
     expect(within(card).getByText('5/20 · 25%')).toBeTruthy();
     expect(within(card).getByRole('progressbar', { name: /Cobertura del ciclo/ })).toBeTruthy();
 
+    await openTab(u, EMPRESAS);
     expect((await screen.findAllByText('Empresa 2 S.A.')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('2 ciclos sin avance').length).toBeGreaterThan(0);
     expect(screen.getAllByText('1 ciclo sin avance').length).toBeGreaterThan(0);
@@ -133,7 +144,10 @@ describe('Cartera: lectura', () => {
     mocked = mockFetch(baseHandler());
     await mountApp('/cartera', 'ADMIN');
     await screen.findByText('Ciclo #4');
-    expect(screen.getByRole('button', { name: /Asignación masiva/ })).toBeTruthy();
+    // La rotación vive en la cabecera, fuera de las pestañas.
+    expect(screen.getByRole('button', { name: /Ejecutar rotación semanal/ })).toBeTruthy();
+    await openTab(userEvent.setup(), EMPRESAS);
+    expect(await screen.findByRole('button', { name: /Asignación masiva/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Ejecutar rotación semanal/ })).toBeTruthy();
     expect(
       screen.getAllByRole('button', { name: 'Liberar Empresa 1 S.A.' }).length,
@@ -146,7 +160,9 @@ describe('Cartera: lectura', () => {
     mocked = mockFetch(baseHandler());
     await mountApp('/cartera', 'SUPERVISOR');
     await screen.findByText('Ciclo #4');
-    expect(screen.getByRole('button', { name: /Asignación masiva/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Ejecutar rotación semanal/ })).toBeNull();
+    await openTab(userEvent.setup(), EMPRESAS);
+    expect(await screen.findByRole('button', { name: /Asignación masiva/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Ejecutar rotación semanal/ })).toBeNull();
     expect(
       screen.getAllByRole('button', { name: 'Liberar Empresa 1 S.A.' }).length,
@@ -157,10 +173,14 @@ describe('Cartera: lectura', () => {
     rows = [assignment(1, { userId: 1, userName: 'Ana Pérez' })];
     mocked = mockFetch(baseHandler());
     await mountApp('/cartera', 'EJECUTIVO');
+    const u = userEvent.setup();
     await screen.findByText('Ciclo #4');
+    expect(screen.queryByRole('button', { name: /Ejecutar rotación semanal/ })).toBeNull();
+    await openTab(u, /Tu avance/);
     expect(screen.getByTestId('exec-1')).toBeTruthy();
     expect(screen.queryByTestId('exec-2')).toBeNull();
     expect(screen.queryByTestId('exec-3')).toBeNull();
+    await openTab(u, /Mis empresas/);
     expect(await screen.findAllByText('Empresa 1 S.A.')).not.toHaveLength(0);
     expect(screen.queryByRole('button', { name: /Asignación masiva/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Ejecutar rotación semanal/ })).toBeNull();
@@ -177,7 +197,8 @@ describe('Cartera: lectura', () => {
     await mountApp('/cartera', 'ADMIN');
     const u = userEvent.setup();
     await screen.findByText('Ciclo #4');
-    await u.click(screen.getByRole('button', { name: 'Filtrar por ejecutivo' }));
+    await openTab(u, EMPRESAS);
+    await u.click(await screen.findByRole('button', { name: 'Filtrar por ejecutivo' }));
     const listbox = await screen.findByRole('listbox');
     expect(within(listbox).getAllByRole('option')).toHaveLength(3);
     await u.type(screen.getByRole('combobox', { name: 'Buscar ejecutivo…' }), 'bruno');
@@ -221,6 +242,7 @@ describe('Cartera: reasignar', () => {
     );
     await mountApp('/cartera', 'ADMIN');
     const u = userEvent.setup();
+    await openTab(u, EMPRESAS);
     await screen.findAllByText('Empresa 1 S.A.');
 
     expect(screen.queryByRole('button', { name: /Reasignar a/ })).toBeNull();
@@ -279,6 +301,7 @@ describe('Cartera: reasignar', () => {
     );
     await mountApp('/cartera', 'SUPERVISOR');
     const u = userEvent.setup();
+    await openTab(u, EMPRESAS);
     await screen.findAllByText('Empresa 1 S.A.');
     await u.click(
       screen.getAllByRole('checkbox', { name: 'Seleccionar Empresa 1 S.A.' })[0] as HTMLElement,
@@ -308,6 +331,7 @@ describe('Cartera: liberar', () => {
     );
     await mountApp('/cartera', 'ADMIN');
     const u = userEvent.setup();
+    await openTab(u, EMPRESAS);
     await u.click(
       (await screen.findAllByRole('button', { name: 'Liberar Empresa 5 S.A.' }))[0] as HTMLElement,
     );
@@ -333,6 +357,7 @@ describe('Cartera: liberar', () => {
     );
     await mountApp('/cartera', 'SUPERVISOR');
     const u = userEvent.setup();
+    await openTab(u, EMPRESAS);
     await u.click(
       (await screen.findAllByRole('button', { name: 'Liberar Empresa 5 S.A.' }))[0] as HTMLElement,
     );
@@ -359,6 +384,7 @@ describe('Cartera: asignación masiva y rotación', () => {
     );
     await mountApp('/cartera', 'SUPERVISOR');
     const u = userEvent.setup();
+    await openTab(u, EMPRESAS);
     await u.click(await screen.findByRole('button', { name: /Asignación masiva/ }));
     const dialog = await screen.findByRole('dialog');
 
@@ -396,6 +422,7 @@ describe('Cartera: asignación masiva y rotación', () => {
     );
     await mountApp('/cartera', 'ADMIN');
     const u = userEvent.setup();
+    await openTab(u, EMPRESAS);
     await u.click(await screen.findByRole('button', { name: /Asignación masiva/ }));
     const dialog = await screen.findByRole('dialog');
     await pick(u, within(dialog).getByLabelText('Ejecutivo destino'), /Ana Ejecutiva/);
@@ -464,7 +491,9 @@ describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
     await screen.findByTestId('portfolio-stats');
     expect(screen.queryByTestId('stat-executives')).toBeNull();
     expect(screen.getByTestId('stat-assigned').textContent).toBe('60');
-    expect(screen.getByText('Tu avance')).toBeTruthy();
+    // Para el EJECUTIVO la pestaña y el bloque de rendimiento se llaman «Tu avance».
+    await openTab(userEvent.setup(), /Tu avance/);
+    expect(screen.getByRole('heading', { name: 'Tu avance' })).toBeTruthy();
   });
 
   test('muchos ejecutivos: buscador y paginación de las filas de rendimiento', async () => {
@@ -475,6 +504,7 @@ describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
     await mountApp('/cartera', 'ADMIN');
     const u = userEvent.setup();
     await screen.findByText('Ciclo #4');
+    await openTab(u, EJECUTIVOS);
     expect(screen.getAllByTestId(/^exec-/)).toHaveLength(7);
     expect(screen.getByText('1–7 de 12 ejecutivos')).toBeTruthy();
 
@@ -496,6 +526,8 @@ describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
     mocked = mockFetch(baseHandler());
     await mountApp('/cartera', 'ADMIN');
     await screen.findByText('Ciclo #4');
+    await openTab(userEvent.setup(), EJECUTIVOS);
+    expect(screen.getAllByTestId(/^exec-/)).toHaveLength(3);
     expect(screen.queryByRole('searchbox', { name: 'Buscar ejecutivo…' })).toBeNull();
     expect(screen.queryByText(/de 3 ejecutivos/)).toBeNull();
   });
@@ -509,6 +541,7 @@ describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
     mocked = mockFetch(baseHandler());
     await mountApp('/cartera', 'ADMIN');
     const u = userEvent.setup();
+    await openTab(u, EMPRESAS);
     await screen.findAllByText('Empresa 2 S.A.');
     const first = mocked.calls.find((c) => c.url.pathname === '/api/portfolio/assignments');
     expect(first?.url.searchParams.get('pageSize')).toBe('7');
@@ -547,6 +580,7 @@ describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
     mocked = mockFetch(baseHandler());
     await mountApp('/cartera', 'ADMIN');
     const u = userEvent.setup();
+    await openTab(u, EMPRESAS);
     await screen.findAllByText('Empresa 1 S.A.');
     await u.click(
       screen.getAllByRole('checkbox', {
@@ -573,5 +607,42 @@ describe('Cartera: rediseño (ciclo, KPIs, búsqueda y paginación)', () => {
         'listitem',
       ),
     ).toHaveLength(1);
+  });
+});
+
+describe('Cartera: pestañas', () => {
+  test('por defecto muestra el ciclo; «Empresas asignadas» muestra la tabla y oculta la tira', async () => {
+    rows = [assignment(1)];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+    const u = userEvent.setup();
+    await screen.findByText('Ciclo #4');
+    expect(screen.getByRole('tab', { name: 'Ciclo' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getAllByTestId('cycle-day')).toHaveLength(21);
+    expect(screen.queryAllByText('Empresa 1 S.A.')).toHaveLength(0);
+
+    await openTab(u, EMPRESAS);
+    expect(screen.getByRole('tab', { name: EMPRESAS }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tabpanel')).toBeTruthy();
+    expect(await screen.findByRole('table', { name: 'Empresas asignadas' })).toBeTruthy();
+    expect(screen.queryAllByTestId('cycle-day')).toHaveLength(0);
+    expect(screen.queryByText('Ciclo #4')).toBeNull();
+  });
+
+  test('la pestaña elegida se recuerda al volver a la página', async () => {
+    rows = [assignment(1)];
+    mocked = mockFetch(baseHandler());
+    await mountApp('/cartera', 'ADMIN');
+    await screen.findByText('Ciclo #4');
+    await openTab(userEvent.setup(), EMPRESAS);
+    await screen.findAllByText('Empresa 1 S.A.');
+
+    cleanup();
+    await mountApp('/cartera', 'ADMIN');
+    expect((await screen.findByRole('tab', { name: EMPRESAS })).getAttribute('aria-selected')).toBe(
+      'true',
+    );
+    expect((await screen.findAllByText('Empresa 1 S.A.')).length).toBeGreaterThan(0);
+    expect(screen.queryAllByTestId('cycle-day')).toHaveLength(0);
   });
 });

@@ -23,6 +23,7 @@ import { ChangeStatusMenu, RegisterContactDialog, usePipelineState } from '@/fea
 import { companyDetailKey } from '@/features/pipeline/api';
 import { api, HttpError } from '@/shared/api';
 import { useClientList } from '@/shared/hooks/use-client-list';
+import { useDelayedFlag } from '@/shared/hooks/use-delayed-flag';
 import { formatAbsolute, formatRelative } from '@/shared/lib/format-date';
 import { Button } from '@/shared/ui/button';
 import { Card, CardTitle } from '@/shared/ui/card';
@@ -179,6 +180,7 @@ function TimelineSection({ companyId }: { companyId: number }) {
   const [pageSize, setPageSize] = useState<number>(TIMELINE_PAGE_SIZE_OPTIONS[0]);
   const [query, setQuery] = useState('');
   const q = useTimelinePage(companyId, page, pageSize);
+  const dimmed = useDelayedFlag(q.isFetching);
   const items = q.data?.items ?? [];
   const needle = normalizeSearchText(query);
   // El API no filtra el historial por texto: la búsqueda se aplica a la página cargada.
@@ -222,7 +224,11 @@ function TimelineSection({ companyId }: { companyId: number }) {
       ) : (
         <>
           <div
-            className={q.isFetching ? 'p-5 opacity-60 transition-opacity' : 'p-5'}
+            className={
+              dimmed
+                ? 'p-5 opacity-60 transition-opacity duration-200'
+                : 'p-5 transition-opacity duration-200'
+            }
             aria-busy={q.isFetching}
           >
             {visible.length === 0 ? (

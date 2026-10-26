@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { z } from 'zod';
 import { useSessionStore } from '@/features/auth/session-store';
 import { useExecutives } from '@/features/dashboard/queries';
+import { useDelayedFlag } from '@/shared/hooks/use-delayed-flag';
 import { cn } from '@/shared/lib/cn';
 import {
   addDays,
@@ -162,6 +163,7 @@ function AgendaSection({
   const monday = mondayOf(search.week ?? today);
   const range = useMemo(() => weekRangeIso(monday), [monday]);
   const agenda = useAgenda(range, search.userId);
+  const agendaDimmed = useDelayedFlag(agenda.isFetching);
   const isCurrent = monday === mondayOf(today);
   // La agenda trae la semana completa: la búsqueda se resuelve en cliente sobre todas sus citas.
   const visible = useMemo(() => filterAppointments(agenda.data ?? [], query), [agenda.data, query]);
@@ -216,7 +218,7 @@ function AgendaSection({
       </div>
       <div
         aria-busy={agenda.isFetching}
-        className={cn('transition-opacity', agenda.isFetching && 'opacity-70')}
+        className={cn('transition-opacity duration-200', agendaDimmed && 'opacity-70')}
       >
         {agenda.isPending ? (
           <ListSkeleton />
@@ -259,6 +261,7 @@ function ListSection({ search, update, query, onQueryChange }: SectionProps) {
     [search.page, search.pageSize, search.status, search.userId, search.from, search.to],
   );
   const list = useAppointmentsList(filters);
+  const listDimmed = useDelayedFlag(list.isFetching);
   const searching = !!query.trim();
   // El API pagina pero no busca por texto: la búsqueda filtra la página recibida.
   const items = useMemo(
@@ -356,7 +359,7 @@ function ListSection({ search, update, query, onQueryChange }: SectionProps) {
       ) : (
         <ul
           aria-busy={list.isFetching}
-          className={cn('divide-y transition-opacity', list.isFetching && 'opacity-70')}
+          className={cn('divide-y transition-opacity duration-200', listDimmed && 'opacity-70')}
         >
           {items.map((a) => (
             <li key={a.id}>

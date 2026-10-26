@@ -11,6 +11,7 @@ import {
 import { type DragEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useClientList } from '@/shared/hooks/use-client-list';
+import { useDelayedFlag } from '@/shared/hooks/use-delayed-flag';
 import { errorMessage } from '@/shared/lib/api-errors';
 import { cn } from '@/shared/lib/cn';
 import { Badge } from '@/shared/ui/badge';
@@ -191,6 +192,7 @@ function Rejections({ jobId, total }: { jobId: number; total: number }) {
   const [pageSize, setPageSize] = useState<number>(REJECTIONS_PAGE_SIZE);
   const [query, setQuery] = useState('');
   const q = useImportRejections(jobId, page, true, pageSize);
+  const dimmed = useDelayedFlag(q.isFetching);
   const needle = normalizeSearchText(query);
   // El API no filtra los rechazos por texto: la búsqueda se aplica a la página cargada.
   const rows = (q.data?.items ?? []).filter(
@@ -217,7 +219,7 @@ function Rejections({ jobId, total }: { jobId: number; total: number }) {
         <QueryError error={q.error} onRetry={() => void q.refetch()} />
       ) : (
         <>
-          <div className={cn('transition-opacity', q.isFetching && 'opacity-60')}>
+          <div className={cn('transition-opacity duration-200', dimmed && 'opacity-60')}>
             <Table aria-label="Filas rechazadas">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">

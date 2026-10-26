@@ -1,6 +1,6 @@
 import { INTERACTION_OUTCOMES, type WeeklyActivityDto } from '@axiom/contracts';
 import { Activity } from 'lucide-react';
-import { type ReactNode, useId, useMemo } from 'react';
+import { type ReactNode, useEffect, useId, useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -44,6 +44,19 @@ const margin = { top: 8, right: 8, bottom: 4, left: -12 };
 const tickDay = (v: string) => formatDayMonth(v);
 /** Pista fantasma detrás de cada barra. */
 const TRACK = { fill: 'var(--track)', radius: 6 };
+
+/**
+ * Los gráficos animan al aparecer y no en cada recarga: con `keepPreviousData` cada refetch
+ * volvía a lanzar la animación y el gráfico parpadeaba.
+ */
+function useAnimateOnce(ms = 900): boolean {
+  const [animate, setAnimate] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setAnimate(false), ms);
+    return () => clearTimeout(t);
+  }, [ms]);
+  return animate;
+}
 
 function hasActivity(data: WeeklyActivityDto | undefined): boolean {
   return !!data?.weeks.some((w) => w.interactions > 0 || w.companiesContacted > 0);
@@ -180,6 +193,7 @@ export function WeeklyActivityCard({
   action?: ReactNode;
 }) {
   const gradientId = useSvgId('weekly-fill');
+  const animate = useAnimateOnce();
   const pivot = useMemo(
     () => (data && byExecutive ? pivotExecutives(data) : null),
     [data, byExecutive],
@@ -226,6 +240,7 @@ export function WeeklyActivityCard({
                   />
                   {pivot.series.map((s) => (
                     <Line
+                      isAnimationActive={animate}
                       key={s.key}
                       type="monotone"
                       dataKey={s.key}
@@ -262,6 +277,7 @@ export function WeeklyActivityCard({
                     wrapperStyle={legendStyle}
                   />
                   <Bar
+                    isAnimationActive={animate}
                     dataKey="interactions"
                     name="Interacciones"
                     fill={`url(#${gradientId})`}
@@ -271,6 +287,7 @@ export function WeeklyActivityCard({
                     maxBarSize={36}
                   />
                   <Line
+                    isAnimationActive={animate}
                     type="monotone"
                     dataKey="companiesContacted"
                     name="Empresas distintas"
@@ -300,6 +317,7 @@ export function WeeklyActivityCard({
 }
 
 export function OutcomesCard({ data }: { data: WeeklyActivityDto | undefined }) {
+  const animate = useAnimateOnce();
   const rows = useMemo(
     () => (data?.weeks ?? []).map((w) => ({ weekStart: w.weekStart, ...w.byOutcome })),
     [data],
@@ -331,6 +349,7 @@ export function OutcomesCard({ data }: { data: WeeklyActivityDto | undefined }) 
                 />
                 {INTERACTION_OUTCOMES.map((o, i) => (
                   <Bar
+                    isAnimationActive={animate}
                     key={o}
                     dataKey={o}
                     name={OUTCOME_LABELS[o]}

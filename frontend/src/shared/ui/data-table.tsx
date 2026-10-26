@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useDelayedFlag } from '../hooks/use-delayed-flag';
 import { cn } from '../lib/cn';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 
@@ -41,6 +42,8 @@ export function DataTable<T>({
   isFetching,
   caption,
 }: DataTableProps<T>) {
+  // Solo atenúa si la recarga tarda: las respuestas rápidas no hacen parpadear la tabla.
+  const dimmed = useDelayedFlag(!!isFetching);
   const table = useReactTable({
     columns,
     data: data as T[],
@@ -53,7 +56,10 @@ export function DataTable<T>({
   });
 
   return (
-    <div className={cn('transition-opacity', isFetching && 'opacity-60')} aria-busy={isFetching}>
+    <div
+      className={cn('transition-opacity duration-200', dimmed && 'opacity-60')}
+      aria-busy={isFetching}
+    >
       {renderCard && (
         <ul className="divide-y md:hidden">
           {data.map((row) => (
