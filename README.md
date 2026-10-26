@@ -93,7 +93,16 @@ Puedes ver las opciones con `--weeks`, `--companies` y `--force` en el encabezad
 
 ## Ejecutar en desarrollo
 
-Cada servicio en su propia terminal.
+Desde la raíz, un solo comando levanta la API y el frontend a la vez:
+
+```bash
+bun run dev
+```
+
+- API en modo *watch*: `http://localhost:3000/api`
+- Frontend: `http://localhost:5173`, con proxy de `/api` hacia la API
+
+Para detener ambos, `Ctrl+C`. Si prefieres cada servicio en su propia terminal:
 
 API en modo *watch* (`http://localhost:3000/api`):
 

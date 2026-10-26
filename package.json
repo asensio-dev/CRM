@@ -9,6 +9,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "bun run --filter @axiom/backend --filter @axiom/frontend dev",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "typecheck": "bun run --filter '*' typecheck",
