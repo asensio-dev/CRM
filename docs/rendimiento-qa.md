@@ -186,7 +186,7 @@ Contratos públicos de la API sin cambios.
   n-gramas.
 - **Un solo proceso de API** ≈ 150–180 req/s en esta máquina (limitado por el hilo de JavaScript). El equipo previsto
   (10–20 personas) usa una fracción pequeña. Escalar a varias instancias requiere antes: desactivar el cron en todas
-  menos una (hoy no hay variable para ello: pendiente para T4.2 si se quiere), y asumir que el límite de logins y la
+  menos una (desde v1.0.0: `SCHEDULER_ENABLED=false` en todas menos una), y asumir que el límite de logins y la
   revocación inmediata de sesiones son por proceso (ver `security-review.md`).
 - **Tablero sin filtro**: cada carga cuenta las 103 k empresas por estado (~30 ms de CPU). Con mucho más volumen,
   valorar una vista indexada de conteos.
