@@ -22,7 +22,7 @@ const base: CompanySearchable = {
 
 describe('company specifications', () => {
   test('text matches ruc, legal name and trade name ignoring case and accents', () => {
-    expect(new TextMatchSpec('j031').isSatisfiedBy(base)).toBe(true);
+    expect(new TextMatchSpec('j999').isSatisfiedBy(base)).toBe(true);
     expect(new TextMatchSpec('compania nandu').isSatisfiedBy(base)).toBe(true);
     expect(new TextMatchSpec('CAFE').isSatisfiedBy(base)).toBe(true);
     expect(new TextMatchSpec('zzz').isSatisfiedBy(base)).toBe(false);
