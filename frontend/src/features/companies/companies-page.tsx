@@ -183,7 +183,7 @@ export function CompaniesPage() {
       <Card className="overflow-hidden">
         <CompanyFilters search={search} onChange={onFilters} onClear={clear} />
         {list.isPending && !rangeInvalid ? (
-          <TableSkeleton columns={COLUMNS.length} rows={10} />
+          <TableSkeleton columns={COLUMNS.length} />
         ) : list.isError && !data ? (
           <QueryError error={list.error} onRetry={() => void list.refetch()} />
         ) : data && data.items.length === 0 ? (

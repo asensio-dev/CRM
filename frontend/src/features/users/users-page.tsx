@@ -197,7 +197,7 @@ export function UsersPage() {
           )}
         </section>
         {list.isPending ? (
-          <TableSkeleton columns={5} rows={6} />
+          <TableSkeleton columns={5} />
         ) : list.isError && !data ? (
           <QueryError error={list.error} onRetry={() => void list.refetch()} />
         ) : data && view.total === 0 ? (

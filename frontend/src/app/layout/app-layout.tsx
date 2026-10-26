@@ -1,8 +1,15 @@
 import { Outlet } from '@tanstack/react-router';
+import { useEffect } from 'react';
+import { prefetchPages } from '../page-loaders';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
 
 export function AppLayout() {
+  // Con la sesión ya abierta, precarga el resto de pantallas cuando el navegador esté libre.
+  useEffect(() => {
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 400));
+    idle(() => prefetchPages());
+  }, []);
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />

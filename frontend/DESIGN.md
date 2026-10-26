@@ -302,7 +302,9 @@ Below 768px the rail becomes a 288px drawer over a 35% scrim, opened from a menu
 
 Each screen opens with a page header (title and description left, primary action right, bottom-aligned, 28px below), then its data. List screens are one card: a filter row (search first, then selects; 16px padding, 12px gap, hairline below), then the table or empty state, then a full pagination bar in a hairline-topped footer. Dashboard and portfolio compose cards in grids with 16px gaps and 24px between sections; stat tiles run 1, 2 and then 3 or 4 columns at 640 and 1280px.
 
-Screens with several distinct jobs (Cartera, Tablero) split them into underline tabs under the page header instead of stacking every section; the chosen tab is remembered for the browser session. The Pipeline board shows only the six working stages as fluid columns (minimum 11rem, about 80% of the width on phones with snap scrolling); a switch reveals "Por contactar" and "Descartado", and cards carry only the company name and last contact.
+Screens with several distinct jobs (Cartera, Tablero) split them into underline tabs under the page header instead of stacking every section; the chosen tab is remembered for the browser session. The Pipeline board shows only the six working stages as fluid columns (minimum 11rem, about 80% of the width on phones with snap scrolling); a switch reveals "Por contactar" and "Descartado", and cards carry only the company name and last contact, 5 per column page so the board fits without scrolling.
+
+Loading is one continuous shape: while the session restores, the app shell (rail, topbar) and the requested screen's skeleton are already drawn; the route fallback and the screen's own data skeleton use the same shared pieces (page header at the real title/description line heights, 7-row tables, the board grid), so content replaces the skeleton without moving. All screen chunks are prefetched in the background after sign-in.
 
 The topbar holds the section path (group / page), a today's-date chip from 1024px, and the user menu with initials avatar.
 

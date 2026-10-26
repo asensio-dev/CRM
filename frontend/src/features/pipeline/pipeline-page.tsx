@@ -29,9 +29,9 @@ import { cn } from '@/shared/lib/cn';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { PageHeader } from '@/shared/ui/page-header';
+import { BOARD_GRID, BoardSkeleton, boardColumns } from '@/shared/ui/page-skeletons';
 import { SearchInput } from '@/shared/ui/search-input';
 import { SearchableSelect } from '@/shared/ui/searchable-select';
-import { Skeleton } from '@/shared/ui/skeleton';
 import {
   type BoardFilters,
   fetchPipelineState,
@@ -43,7 +43,7 @@ import {
 } from './api';
 import { CardOverlay } from './board-card';
 import { BoardColumn, type DragInfo } from './board-column';
-import { limitForPage } from './board-paging';
+import { COLUMN_PAGE_SIZE, limitForPage } from './board-paging';
 import { pipelineErrorMessage } from './errors';
 import { DEFAULT_LIMIT, type PipelineSearch, pipelineSearchSchema } from './search';
 import { StatusNoteDialog } from './status-note-dialog';
@@ -201,31 +201,6 @@ function Filters({
   );
 }
 
-/** Columnas fluidas: llenan el ancho disponible y, si no caben, se desplazan con imán. */
-const BOARD_GRID = 'grid items-stretch gap-3 [--col-min:80vw] sm:[--col-min:11rem]';
-const COLUMN_MIN = 'var(--col-min)';
-
-function BoardSkeleton() {
-  return (
-    <div
-      role="status"
-      className={cn(BOARD_GRID, 'overflow-hidden')}
-      style={{ gridTemplateColumns: `repeat(6, minmax(${COLUMN_MIN}, 1fr))` }}
-      aria-busy="true"
-      aria-label="Cargando tablero"
-    >
-      {PIPELINE_STATUSES.filter((st) => !SIDE_STATUSES.includes(st)).map((st) => (
-        <div key={st} className="space-y-2 rounded-xl bg-muted/60 p-2">
-          <Skeleton className="mx-1 my-1.5 h-4 w-28" />
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 rounded-lg" />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 type ColumnPages = Partial<Record<PipelineStatus, number>>;
 
 /** Página actual de cada columna; vuelve a la primera cuando cambian la búsqueda o los filtros. */
@@ -346,7 +321,7 @@ export function PipelinePage() {
       />
 
       {board.isPending ? (
-        <BoardSkeleton />
+        <BoardSkeleton columns={columns.length} cards={COLUMN_PAGE_SIZE} />
       ) : board.isError ? (
         <EmptyState
           icon={Kanban}
@@ -388,9 +363,7 @@ export function PipelinePage() {
           >
             <div
               className={BOARD_GRID}
-              style={{
-                gridTemplateColumns: `repeat(${columns.length}, minmax(${COLUMN_MIN}, 1fr))`,
-              }}
+              style={{ gridTemplateColumns: boardColumns(columns.length) }}
             >
               {columns.map((column) => (
                 <BoardColumn

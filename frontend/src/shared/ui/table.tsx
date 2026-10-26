@@ -1,5 +1,6 @@
 import type { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from 'react';
 import { cn } from '../lib/cn';
+import { DEFAULT_PAGE_SIZE } from './pagination';
 import { Skeleton } from './skeleton';
 
 export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>) {
@@ -41,7 +42,13 @@ export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCel
 }
 
 /** Esqueleto de carga para listados paginados. */
-export function TableSkeleton({ columns = 5, rows = 8 }: { columns?: number; rows?: number }) {
+export function TableSkeleton({
+  columns = 5,
+  rows = DEFAULT_PAGE_SIZE,
+}: {
+  columns?: number;
+  rows?: number;
+}) {
   return (
     <Table aria-busy="true" aria-label="Cargando datos">
       <TableHeader>

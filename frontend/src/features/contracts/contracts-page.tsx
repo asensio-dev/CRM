@@ -253,7 +253,7 @@ export function ContractsPage() {
         )}
 
         {list.isPending ? (
-          <TableSkeleton columns={5} rows={6} />
+          <TableSkeleton columns={5} />
         ) : list.isError ? (
           <div className="p-4">
             <QueryError error={list.error} onRetry={() => list.refetch()} />

@@ -15,27 +15,23 @@ import { LoginPage } from '@/features/auth/login-page';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { PlaceholderPage } from '@/shared/ui/placeholder-page';
-import { Skeleton } from '@/shared/ui/skeleton';
 import { AppLayout } from './layout/app-layout';
 import { NAV_ITEMS, type NavItem } from './navigation';
+import { PageFallback } from './page-fallbacks';
+import { registerPageLoader } from './page-loaders';
 
 /**
  * Página cargada bajo demanda (chunk propio por pantalla): el bundle inicial solo lleva el
  * layout, el login y lo compartido. Antes era un único chunk de ~970 kB (ver docs/rendimiento-qa.md).
  */
-const lazyPage = (load: () => Promise<ComponentType>): ComponentType =>
-  lazy(async () => ({ default: await load() }));
+const lazyPage = (load: () => Promise<ComponentType>): ComponentType => {
+  registerPageLoader(load);
+  return lazy(async () => ({ default: await load() }));
+};
 
-function LazyRoute({ page: Page }: { page: ComponentType }): ReactElement {
+function LazyRoute({ page: Page, path }: { page: ComponentType; path: string }): ReactElement {
   return (
-    <Suspense
-      fallback={
-        <div role="status" aria-busy="true" aria-label="Cargando página" className="space-y-4">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-72" />
-        </div>
-      }
-    >
+    <Suspense fallback={<PageFallback path={path} />}>
       <Page />
     </Suspense>
   );
@@ -123,7 +119,7 @@ const pageRoutes = NAV_ITEMS.map((item) => {
     path: item.to,
     beforeLoad: item.roles ? () => requireRole(item.roles ?? []) : undefined,
     component: Page
-      ? () => <LazyRoute page={Page} />
+      ? () => <LazyRoute page={Page} path={item.to} />
       : () => (
           <PlaceholderPage
             title={item.label}
@@ -143,7 +139,7 @@ export const companyDetailRoute = createRoute({
     parse: ({ companyId }) => ({ companyId: z.coerce.number().int().positive().parse(companyId) }),
     stringify: ({ companyId }) => ({ companyId: String(companyId) }),
   },
-  component: () => <LazyRoute page={CompanyDetailPage} />,
+  component: () => <LazyRoute page={CompanyDetailPage} path="/empresas/0" />,
 });
 
 const routeTree = rootRoute.addChildren([
