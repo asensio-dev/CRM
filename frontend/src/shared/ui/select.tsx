@@ -13,7 +13,7 @@ export function Select({ className, children, ref, ...props }: SelectProps) {
       <select
         ref={ref}
         className={cn(
-          'flex h-9 w-full appearance-none rounded-md border border-input bg-card py-1 pl-3 pr-8 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive',
+          'flex h-9 w-full appearance-none rounded-lg border border-input bg-card py-1 pl-3 pr-8 text-sm shadow-xs transition-[border-color,box-shadow] hover:border-muted-foreground/40 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive',
           className,
         )}
         {...props}

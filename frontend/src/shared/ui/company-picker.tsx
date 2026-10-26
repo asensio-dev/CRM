@@ -7,6 +7,8 @@ import { Combobox, type ComboboxOption } from './combobox';
 
 export type { ComboboxOption as CompanyOption };
 
+const PAGE_SIZE = 15;
+
 interface CompanyPickerProps {
   id?: string;
   value: ComboboxOption | null;
@@ -28,12 +30,13 @@ export function CompanyPicker({
   placeholder = 'Buscar empresa…',
 }: CompanyPickerProps) {
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
   const debounced = useDebouncedValue(query.trim(), 250);
   const search = useQuery({
-    queryKey: ['companies', 'picker', debounced],
+    queryKey: ['companies', 'picker', debounced, page],
     queryFn: ({ signal }) =>
       api.get<Paginated<CompanyListItem>>(
-        `/companies?${new URLSearchParams({ ...(debounced ? { q: debounced } : {}), pageSize: '15' })}`,
+        `/companies?${new URLSearchParams({ ...(debounced ? { q: debounced } : {}), page: String(page), pageSize: String(PAGE_SIZE) })}`,
         signal,
       ),
     staleTime: 30_000,
@@ -50,7 +53,16 @@ export function CompanyPicker({
       onChange={onChange}
       options={options}
       query={query}
-      onQueryChange={setQuery}
+      onQueryChange={(q) => {
+        setQuery(q);
+        setPage(1);
+      }}
+      pagination={{
+        page,
+        pageSize: PAGE_SIZE,
+        total: search.data?.total ?? 0,
+        onPageChange: setPage,
+      }}
       isLoading={search.isFetching}
       placeholder={placeholder}
       searchPlaceholder="Nombre o RUC de la empresa"

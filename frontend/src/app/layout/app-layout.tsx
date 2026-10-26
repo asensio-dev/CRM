@@ -10,8 +10,8 @@ export function AppLayout() {
         <Topbar />
         {/* `relative`: contiene los elementos `absolute` (p. ej. tablas sr-only de los gráficos);
             sin él estiran el documento y aparece una segunda barra de scroll en la ventana. */}
-        <main className="relative flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto w-full max-w-7xl">
+        <main className="bg-workspace relative flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[90rem]">
             <Outlet />
           </div>
         </main>
