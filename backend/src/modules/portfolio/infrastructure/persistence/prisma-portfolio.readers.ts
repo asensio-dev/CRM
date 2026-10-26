@@ -1,4 +1,10 @@
-import type { AssignmentDto, AssignmentsQuery, Paginated, PlanItemReason } from '@axiom/contracts';
+import type {
+  AssignmentDto,
+  AssignmentsQuery,
+  Paginated,
+  PipelineStatus,
+  PlanItemReason,
+} from '@axiom/contracts';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../generated/prisma/client';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
@@ -251,7 +257,7 @@ export class PrismaPortfolioReadModel implements PortfolioReadModel {
         legalName: r.legalName,
         tradeName: r.tradeName,
         phone: r.phone,
-        status: r.status,
+        status: r.status as PipelineStatus,
         reason: r.reason as PlanItemReason,
         priority: r.priority,
         contactedAt: iso(r.contactedAt),
@@ -344,7 +350,7 @@ export class PrismaPortfolioReadModel implements PortfolioReadModel {
         legalName: r.company.legalName,
         tradeName: r.company.tradeName,
         phone: r.company.phone,
-        status: r.company.status,
+        status: r.company.status as PipelineStatus,
         employeeCount: r.company.employeeCount,
         lastContactAt: iso(r.company.lastContactAt),
         userId: r.userId,
