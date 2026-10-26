@@ -155,6 +155,7 @@ export function KpiTiles({
             max={100}
             complete={typeof compliance === 'number' && compliance >= 100}
             label="Cumplimiento de cuota semanal"
+            valueText={formatPct(compliance)}
           />
           <p className="text-xs text-muted-foreground tabular-nums">
             {formatInt(summary.contactsThisWeek)} de {formatInt(weeklyQuota.target)} contactos

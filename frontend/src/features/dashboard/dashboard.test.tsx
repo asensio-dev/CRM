@@ -118,6 +118,7 @@ describe('KpiTiles', () => {
     expect(within(compliance).getByText(/Meta superada/)).toBeTruthy();
     const bar = within(compliance).getByRole('progressbar');
     expect(bar.getAttribute('aria-valuenow')).toBe('100');
+    expect(bar.getAttribute('aria-valuetext')).toBe('112.5 %');
     expect(bar.getAttribute('aria-valuemax')).toBe('100');
 
     const contracts = screen.getByTestId('kpi-contracts');
