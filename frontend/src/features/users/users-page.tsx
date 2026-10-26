@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { ROLE_LABELS } from '@/app/navigation';
 import { useSessionStore } from '@/features/auth/session-store';
 import { useClientList } from '@/shared/hooks/use-client-list';
+import { initials } from '@/shared/lib/initials';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
@@ -32,13 +33,6 @@ function ActiveBadge({ active }: { active: boolean }) {
       Inactivo
     </Badge>
   );
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
 }
 
 const userText = (u: UserDto) => `${u.fullName} ${u.email}`;
@@ -182,7 +176,7 @@ export function UsersPage() {
               ))}
             </Select>
           </div>
-          <div className="w-full sm:w-40">
+          <div className="w-full sm:w-48">
             <Select
               aria-label="Filtrar por estado"
               value={status}

@@ -43,6 +43,7 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
     id: 'ruc',
     header: 'RUC',
     enableSorting: false,
+    meta: { className: 'whitespace-nowrap' },
     cell: ({ row }) => (
       <span className="font-mono text-xs text-muted-foreground">{row.original.ruc}</span>
     ),
@@ -52,9 +53,9 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
     accessorFn: (c) => c.legalName,
     header: 'Razón social',
     enableSorting: true,
-    meta: { className: 'min-w-64' },
+    meta: { className: 'min-w-56' },
     cell: ({ row }) => (
-      <div className="max-w-sm">
+      <div className="max-w-xs xl:max-w-sm">
         <p className="truncate font-medium text-foreground">{row.original.legalName}</p>
         {row.original.tradeName && (
           <p className="truncate text-xs text-muted-foreground">{row.original.tradeName}</p>
@@ -66,6 +67,7 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
     id: 'sector',
     header: 'Sector',
     enableSorting: false,
+    meta: { className: 'hidden whitespace-nowrap 2xl:table-cell' },
     cell: ({ row }) => (
       <span className="text-muted-foreground">{row.original.sectorName ?? '—'}</span>
     ),
@@ -75,7 +77,7 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
     accessorFn: (c) => c.employeeCount,
     header: 'Empleados',
     enableSorting: true,
-    meta: { className: 'text-right' },
+    meta: { className: 'whitespace-nowrap text-right' },
     cell: ({ row }) => (
       <span className="tabular-nums">{nf.format(row.original.employeeCount)}</span>
     ),
@@ -84,12 +86,14 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
     id: 'phone',
     header: 'Teléfono',
     enableSorting: false,
+    meta: { className: 'whitespace-nowrap' },
     cell: ({ row }) => row.original.phone ?? <span className="text-muted-foreground">—</span>,
   },
   {
     id: 'status',
     header: 'Estado',
     enableSorting: false,
+    meta: { className: 'whitespace-nowrap' },
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {
@@ -97,6 +101,7 @@ const COLUMNS: ColumnDef<CompanyListItem, unknown>[] = [
     accessorFn: (c) => c.lastContactAt,
     header: 'Último contacto',
     enableSorting: true,
+    meta: { className: 'whitespace-nowrap' },
     cell: ({ row }) => <LastContact iso={row.original.lastContactAt} />,
   },
 ];

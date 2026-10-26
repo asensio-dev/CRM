@@ -2,6 +2,7 @@ import type { ExecutiveCoverageDto } from '@axiom/contracts';
 import { Link } from '@tanstack/react-router';
 import { ArrowRight, SearchX } from 'lucide-react';
 import { useClientList } from '@/shared/hooks/use-client-list';
+import { initials } from '@/shared/lib/initials';
 import { Card, CardDescription, CardTitle } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Pagination } from '@/shared/ui/pagination';
@@ -15,11 +16,6 @@ const EXECUTIVE_PAGE_SIZES = [8, 16, 32] as const;
 const SEARCH_THRESHOLD = 6;
 
 const executiveText = (e: ExecutiveCoverageDto) => e.fullName;
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return `${parts[0]?.[0] ?? ''}${parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : ''}`.toUpperCase();
-}
 
 function MeterBlock({
   title,

@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { CalendarDays, ChevronDown, LogOut, Menu } from 'lucide-react';
 import { useSessionStore } from '@/features/auth/session-store';
+import { initials } from '@/shared/lib/initials';
 import { formatLongDay, managuaDay } from '@/shared/lib/managua-time';
 import { Button } from '@/shared/ui/button';
 import {
@@ -13,15 +14,6 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { NAV_ITEMS, ROLE_LABELS } from '../navigation';
 import { useLayoutStore } from './layout-store';
-
-function initials(fullName: string): string {
-  return fullName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join('');
-}
 
 /** Sección actual según la ruta (la ficha de empresa cuelga de Empresas). */
 function useCurrentSection() {

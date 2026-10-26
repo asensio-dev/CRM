@@ -155,7 +155,7 @@ export function CompanyFilters({ search, onChange, onClear }: Props) {
           onValueChange={setQ}
           placeholder="Buscar por RUC, razón social o nombre comercial"
           aria-label="Buscar empresas"
-          className="w-full lg:w-80"
+          className="w-full lg:w-[26rem]"
         />
         <StatusFilter value={search.status ?? []} onChange={(status) => onChange({ status })} />
         <SearchableSelect
