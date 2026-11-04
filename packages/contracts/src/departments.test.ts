@@ -54,6 +54,11 @@ describe('inferDepartment', () => {
   test('sin datos o con empate devuelve null', () => {
     expect(inferDepartment({ addresses: [null, ''] })).toBeNull();
     expect(dep('ENTRE LEON Y CHINANDEGA')).toBeNull();
+    expect(dep('IGLESIA ERMITA DE DOLORES 75 VARAS AL SUR')).toBeNull();
+  });
+
+  test('"entrada a" un residencial sí es la ubicación', () => {
+    expect(dep('PRIMERA ENTRADA A LAS COLINAS 2 CUADRAS AL ESTE')).toBe('MANAGUA');
   });
 });
 

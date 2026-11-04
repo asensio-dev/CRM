@@ -117,9 +117,9 @@ const GAZETTEER: readonly Entry[] = [
   ['MIGUEL BONILLA', 'MANAGUA', 2],
   ['14 DE SEPTIEMBRE', 'MANAGUA', 1],
   ['VILLA FONTANA', 'MANAGUA', 2],
-  ['LAS COLINAS', 'MANAGUA', 1],
-  ['LINDA VISTA', 'MANAGUA', 1],
-  ['ALTAGRACIA', 'MANAGUA', 1],
+  ['LAS COLINAS', 'MANAGUA', 2],
+  ['LINDA VISTA', 'MANAGUA', 2],
+  ['ALTAGRACIA', 'MANAGUA', 2],
   ['MONSENOR LEZCANO', 'MANAGUA', 2],
   ['VILLA LIBERTAD', 'MANAGUA', 2],
   ['VILLA VENEZUELA', 'MANAGUA', 2],
@@ -174,6 +174,35 @@ const GAZETTEER: readonly Entry[] = [
   ['UCA', 'MANAGUA', 1],
   ['TIP TOP LOS ROBLES', 'MANAGUA', 2],
   ['CAMINO VIEJO A SANTO DOMINGO', 'MANAGUA', 2],
+  ['VICKY', 'MANAGUA', 2],
+  ['27 DE MAYO', 'MANAGUA', 2],
+  ['MONTE DE LOS OLIVOS', 'MANAGUA', 2],
+  ['MONTES DE LOS OLIVOS', 'MANAGUA', 2],
+  ['TICA BUS', 'MANAGUA', 2],
+  ['TICABUS', 'MANAGUA', 2],
+  ['MONTOYA', 'MANAGUA', 2],
+  ['HOLIDAY INN', 'MANAGUA', 2],
+  ['OFIPLAZA', 'MANAGUA', 2],
+  ['EL RETIRO', 'MANAGUA', 1],
+  ['INVERCASA', 'MANAGUA', 2],
+  ['ENABAS', 'MANAGUA', 1],
+  ['TENDERI', 'MANAGUA', 2],
+  ['CRUZ AZUL', 'MANAGUA', 1],
+  ['COLEGIO AMERICANO', 'MANAGUA', 2],
+  ['LOZELSA', 'MANAGUA', 2],
+  ['LLANTASA', 'MANAGUA', 2],
+  ['MIGUEL GUTIERREZ', 'MANAGUA', 2],
+  ['PIO X', 'MANAGUA', 2],
+  ['PIPITOS', 'MANAGUA', 1],
+  ['POLISAL', 'MANAGUA', 2],
+  ['VIVIAN PELLAS', 'MANAGUA', 2],
+  ['HOSPITAL METROPOLITANO', 'MANAGUA', 2],
+  ['CANAL 2', 'MANAGUA', 2],
+  ['EL PERIODISTA', 'MANAGUA', 2],
+  ['ROTONDA PERIODISTA', 'MANAGUA', 2],
+  ['JULIO MARTINEZ', 'MANAGUA', 2],
+  ['EL CHAMAN', 'MANAGUA', 2],
+  ['C SANDINO', 'MANAGUA', 2],
   ['CLUB TERRAZA', 'MANAGUA', 2],
   ['VILLA FRATERNIDAD', 'MANAGUA', 2],
   ['VI VENEZUELA', 'MANAGUA', 2],
@@ -201,6 +230,7 @@ const GAZETTEER: readonly Entry[] = [
   ['XALTEVA', 'GRANADA', 2],
   ['LAS ISLETAS', 'GRANADA', 2],
   ['LA CALZADA', 'GRANADA', 1],
+  ['CALLE ATRAVESADA', 'GRANADA', 2],
   // Carazo
   ['CARAZO', 'CARAZO', 2],
   ['JINOTEPE', 'CARAZO', 3],
@@ -246,6 +276,7 @@ const GAZETTEER: readonly Entry[] = [
   ['SUTIAVA', 'LEON', 2],
   ['PONELOYA', 'LEON', 2],
   ['LAS PENITAS', 'LEON', 2],
+  ['LA RECOLECCION', 'LEON', 2],
   // Chinandega
   ['CHINANDEGA', 'CHINANDEGA', 3],
   ['EL VIEJO', 'CHINANDEGA', 2],
@@ -295,6 +326,7 @@ const GAZETTEER: readonly Entry[] = [
   ['DIPILTO', 'NUEVA_SEGOVIA', 3],
   ['MACUELIZO', 'NUEVA_SEGOVIA', 3],
   ['LAS MANOS', 'NUEVA_SEGOVIA', 1],
+  ['INSTITUTO NACIONAL DE SEGOVIA', 'NUEVA_SEGOVIA', 2],
   // Jinotega
   ['JINOTEGA', 'JINOTEGA', 3],
   ['SAN RAFAEL DEL NORTE', 'JINOTEGA', 3],
@@ -320,6 +352,7 @@ const GAZETTEER: readonly Entry[] = [
   ['LA DALIA', 'MATAGALPA', 2],
   ['EL TUMA', 'MATAGALPA', 3],
   ['SELVA NEGRA', 'MATAGALPA', 2],
+  ['GUANUCA', 'MATAGALPA', 2],
   // Boaco
   ['BOACO', 'BOACO', 3],
   ['CAMOAPA', 'BOACO', 3],
@@ -407,6 +440,8 @@ const LANDLINE_PREFIXES: ReadonlyArray<readonly [prefix: string, department: Dep
 ];
 
 const PHONE_WEIGHT = 2;
+/** Puntuación mínima del ganador para asignar departamento. */
+const MIN_SCORE = 2;
 
 /** Vías cuyo nombre puede llevar el destino pegado: "CARRETERA MASAYA", "PANAMERICANA LEON". */
 const DIRECT_ROUTE_WORDS = new Set(['CARRETERA', 'PANAMERICANA', 'BYPASS']);
@@ -416,7 +451,6 @@ const ROUTE_WORDS = new Set([
   'CAMINO',
   'SALIDA',
   'EMPALME',
-  'ENTRADA',
   'RUTA',
   'BUSES',
   'BUS',
@@ -604,6 +638,7 @@ export function inferDepartment(input: {
       tie = false;
     } else if (score === bestScore) tie = true;
   }
-  if (!best || tie) return null;
+  // Un único nombre ambiguo (peso 1) no basta para decidir.
+  if (!best || tie || bestScore < MIN_SCORE) return null;
   return { department: best, evidence: fromAddress.has(best) ? 'ADDRESS' : 'PHONE' };
 }

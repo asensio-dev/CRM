@@ -119,6 +119,8 @@ Importación del Excel: el archivo contiene datos personales. Se carga desde el 
 
 Departamento de las empresas: tras aplicar la migración `company_department`, rellena la columna para toda la base con `cd backend && bun run db:backfill:departments` (usa `--dry-run` para ver el resumen sin escribir y `--only-missing` para tocar solo las que no tienen). Es idempotente y solo imprime cifras agregadas; vuelve a ejecutarlo si se amplía el nomenclátor de `packages/contracts/src/departments.ts`.
 
+Listado de clínicas dentales: `cd backend && bun run db:export:dental` genera `data/clinicas-dentales.xlsx` (datos personales: no lo saques de `data/`, que está ignorado por git). `--out <ruta>` cambia el destino y `--save` guarda además el departamento recalculado en la base.
+
 ## 4. Frontend
 
 ```bash
