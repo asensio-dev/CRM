@@ -89,6 +89,9 @@ model Company {
   phone              String?   @db.NVarChar(20)
   shippingAddress    String?   @db.NVarChar(300)
   particularAddress  String?   @db.NVarChar(300)
+  /// Departamento deducido de las direcciones y el teléfono (DEPARTMENTS en @axiom/contracts).
+  /// null = sin pistas suficientes. Lo rellena la importación y scripts/backfill-departments.ts.
+  department         String?   @db.NVarChar(30)
   activityId         Int?
   sectorId           Int?
   /// Estado del pipeline (ver PIPELINE_STATUSES en @axiom/contracts)
@@ -131,6 +134,7 @@ model Company {
   @@index([sectorId, activityId])
   @@index([sectorId, status])
   @@index([lastContactAt])
+  @@index([department, status])
   @@map("companies")
 }
 

@@ -18,6 +18,7 @@
     "db:bootstrap": "bun scripts/bootstrap-local-db.ts",
     "db:import": "bun scripts/import-companies.ts",
     "db:seed:activity": "bun scripts/seed-activity.ts",
+    "db:backfill:departments": "bun scripts/backfill-departments.ts",
     "test:db": "bun scripts/test-db.ts",
     "qa:setup": "bun scripts/qa-env.ts setup",
     "qa:load": "bun scripts/qa-env.ts run -- bun scripts/load-test.ts",

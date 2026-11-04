@@ -117,6 +117,8 @@ Datos iniciales: `cd backend && bun run db:seed` es idempotente (parámetros, se
 
 Importación del Excel: el archivo contiene datos personales. Se carga desde el CLI (`cd backend && bun run db:import "<ruta-al-xlsx>"`) o desde la pantalla de importación (solo ADMIN). Guárdalo fuera del repositorio y bórralo del servidor cuando termine la carga, según la política de datos de la organización.
 
+Departamento de las empresas: tras aplicar la migración `company_department`, rellena la columna para toda la base con `cd backend && bun run db:backfill:departments` (usa `--dry-run` para ver el resumen sin escribir y `--only-missing` para tocar solo las que no tienen). Es idempotente y solo imprime cifras agregadas; vuelve a ejecutarlo si se amplía el nomenclátor de `packages/contracts/src/departments.ts`.
+
 ## 4. Frontend
 
 ```bash

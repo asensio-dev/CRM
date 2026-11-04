@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  DEPARTMENTS,
   INTERACTION_CHANNELS,
   INTERACTION_OUTCOMES,
   PIPELINE_STATUSES,
@@ -28,7 +29,8 @@ async function latestCheck(constraint: string): Promise<string> {
   throw new Error(`No se encontró el CHECK ${constraint}`);
 }
 
-const valuesIn = (check: string) => [...check.matchAll(/N'([A-Z_]+)'/g)].map((m) => m[1]).sort();
+const valuesIn = (check: string) =>
+  [...check.matchAll(/N'{1,2}([A-Z_]+)'/g)].map((m) => m[1]).sort();
 
 describe('contracts ⇄ CHECK constraints', () => {
   test.each([
@@ -37,6 +39,7 @@ describe('contracts ⇄ CHECK constraints', () => {
     ['users_role_check', USER_ROLES],
     ['interactions_channel_check', INTERACTION_CHANNELS],
     ['interactions_outcome_check', INTERACTION_OUTCOMES],
+    ['companies_department_check', DEPARTMENTS],
   ] as const)('%s', async (constraint, values) => {
     expect(valuesIn(await latestCheck(constraint))).toEqual([...values].sort());
   });

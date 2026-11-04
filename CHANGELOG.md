@@ -6,6 +6,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Añadido
+
+- **Departamento de cada empresa:** nueva columna `companies.department` (17 departamentos y regiones de Nicaragua) deducida de las direcciones de envío y particular —departamentos, municipios, puntos de referencia y kilómetros de las carreteras de Managua— y, si no hay pistas, del prefijo del teléfono fijo. La importación la calcula en cada carga y `bun run db:backfill:departments` la rellena para toda la base (`--dry-run` para simular).
+
 ## [1.0.0] - 2026-10-25
 
 Primera versión de producción. CRM de seguimiento comercial sobre unas 127 000 empresas de Nicaragua, con carteras rotativas de 3 semanas por ejecutivo, pipeline de 8 estados con reglas automáticas, citas, contratos y tablero de indicadores. Validada con los datos reales en un entorno QA tipo producción.

@@ -1,3 +1,4 @@
+import { inferDepartment } from '@axiom/contracts';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { branchKey } from '../../domain/import-deduplicator';
@@ -29,6 +30,7 @@ type ExistingCompany = {
   phone: string | null;
   shippingAddress: string | null;
   particularAddress: string | null;
+  department: string | null;
   activityId: number | null;
   sectorId: number | null;
 };
@@ -45,9 +47,18 @@ const EXISTING_SELECT = {
   phone: true,
   shippingAddress: true,
   particularAddress: true,
+  department: true,
   activityId: true,
   sectorId: true,
 } as const;
+
+/** Departamento deducido de las direcciones y el teléfono de la fila (null si no hay pistas). */
+function departmentOf(c: CompanyCandidate): string | null {
+  return (
+    inferDepartment({ addresses: [c.shippingAddress, c.particularAddress], phone: c.phone })
+      ?.department ?? null
+  );
+}
 
 function chunks<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -156,6 +167,7 @@ export class PrismaCompanyImportWriter implements CompanyImportWriter {
           phone: c.phone,
           shippingAddress: c.shippingAddress,
           particularAddress: c.particularAddress,
+          department: departmentOf(c),
           activityId: this.activities.idOf(c.activityName),
           sectorId: this.sectors.idOf(c.sectorName),
           source: 'EXCEL',
@@ -181,6 +193,7 @@ export class PrismaCompanyImportWriter implements CompanyImportWriter {
       phone: c.phone,
       shippingAddress: c.shippingAddress,
       particularAddress: c.particularAddress,
+      department: departmentOf(c),
       activityId: this.activities.idOf(c.activityName),
       sectorId: this.sectors.idOf(c.sectorName),
     };
