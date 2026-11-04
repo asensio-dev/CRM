@@ -20,6 +20,7 @@
     "db:seed:activity": "bun scripts/seed-activity.ts",
     "db:backfill:departments": "bun scripts/backfill-departments.ts",
     "db:export:dental": "bun scripts/export-dental-clinics.ts",
+    "db:sql:departments": "bun scripts/generate-departments-sql.ts",
     "test:db": "bun scripts/test-db.ts",
     "qa:setup": "bun scripts/qa-env.ts setup",
     "qa:load": "bun scripts/qa-env.ts run -- bun scripts/load-test.ts",

@@ -10,6 +10,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 - **Departamento de cada empresa:** nueva columna `companies.department` (17 departamentos y regiones de Nicaragua) deducida de las direcciones de envío y particular —departamentos, municipios, puntos de referencia y kilómetros de las carreteras de Managua— y, si no hay pistas, del prefijo del teléfono fijo. La importación la calcula en cada carga y `bun run db:backfill:departments` la rellena para toda la base (`--dry-run` para simular).
 - **Listado de clínicas dentales:** `bun run db:export:dental` exporta a `data/clinicas-dentales.xlsx` todas las clínicas dentales (actividad odontológica o nombre con DENTAL/ODONTO/ORTODON) con su departamento y un resumen por departamento.
+- **Script SQL de departamentos:** `bun run db:sql:departments` genera `data/departamentos.sql`, un script autónomo e idempotente para SQL Server (crea la columna, el índice y el CHECK si faltan y asigna el departamento por RUC) que se ejecuta con SSMS o `sqlcmd -I -i` sin instalar el proyecto. `--only dental` genera solo el de las clínicas dentales.
 
 ## [1.0.0] - 2026-10-25
 

@@ -121,6 +121,8 @@ Departamento de las empresas: tras aplicar la migración `company_department`, r
 
 Listado de clínicas dentales: `cd backend && bun run db:export:dental` genera `data/clinicas-dentales.xlsx` (datos personales: no lo saques de `data/`, que está ignorado por git). `--out <ruta>` cambia el destino y `--save` guarda además el departamento recalculado en la base.
 
+Script SQL para otro servidor: `cd backend && bun run db:sql:departments` genera `data/departamentos.sql` (`--only dental` → `data/departamentos-clinicas-dentales.sql`). Es autónomo e idempotente: crea la columna, el índice y el CHECK si no existen, vacía y reasigna el departamento por RUC dentro de una transacción y termina con un conteo por departamento. Ejecútalo con `sqlcmd -S <servidor> -d <base> -I -i data/departamentos.sql`. Contiene RUC/cédulas: no lo saques de `data/`. Si el servidor usa migraciones de Prisma, prefiere `db:deploy` + `db:backfill:departments`.
+
 ## 4. Frontend
 
 ```bash
